@@ -27,8 +27,8 @@ Esta versão já possui as principais funcionalidades, mas está sem banco de da
 - Perguntas sobre PDF
 
 ## Requisitos
-
-- Flutter
+- Flutter 3.19 ou superior
+- Dart 3.3 ou superior
 - Node.js 20+
 - Uma chave da Gemini API
 
