@@ -1,11 +1,10 @@
 # Agenda Inteligente com Gemini
 
-Esta versão já possui as principais funcionalidades, mas foi feita para funcionar **sem login e sem banco de dados**.
+Esta versão já possui as principais funcionalidades, mas está sem banco de dados.
 
 ## O que falta fazer
 
 - Login e cadastro
-- SQLite
 - Contas de usuário
 - Persistência de eventos
 - Persistência de tarefas
