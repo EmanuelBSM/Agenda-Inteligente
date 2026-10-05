@@ -9,7 +9,7 @@ Esta versão já possui as principais funcionalidades, mas está sem banco de da
 - Persistência de eventos
 - Persistência de tarefas
 - Persistência de conversas
-- Testar versão mobile
+- Fazer e Testar versão mobile
 
 
 ## O que já possui
