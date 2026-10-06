@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 
 import 'screens/main_shell.dart';
+import 'services/local_database.dart';
 import 'state/app_store.dart';
 
-void main() {
-  runApp(const AgendaInteligenteApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final database = LocalDatabase();
+  await database.initialize();
+  final store = AppStore.local(database);
+  await store.loadCoreData();
+  runApp(AgendaInteligenteApp(store: store, database: database));
 }
 
 class AgendaInteligenteApp extends StatefulWidget {
-  const AgendaInteligenteApp({super.key});
+  const AgendaInteligenteApp({
+    required this.store,
+    required this.database,
+    super.key,
+  });
+
+  final AppStore store;
+  final LocalDatabase database;
 
   @override
   State<AgendaInteligenteApp> createState() => _AgendaInteligenteAppState();
 }
 
 class _AgendaInteligenteAppState extends State<AgendaInteligenteApp> {
-  late final AppStore store;
-
-  @override
-  void initState() {
-    super.initState();
-    store = AppStore.memory();
-  }
-
   @override
   void dispose() {
-    store.dispose();
+    widget.store.flush().whenComplete(widget.database.close);
+    widget.store.dispose();
     super.dispose();
   }
 
@@ -74,7 +80,7 @@ class _AgendaInteligenteAppState extends State<AgendaInteligenteApp> {
           ),
         ),
       ),
-      home: MainShell(store: store),
+      home: MainShell(store: widget.store),
     );
   }
 }

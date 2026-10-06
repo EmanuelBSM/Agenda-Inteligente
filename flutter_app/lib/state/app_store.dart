@@ -5,6 +5,7 @@ import '../models/agenda_task.dart';
 import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
 import '../models/material_item.dart';
+import '../services/local_database.dart';
 
 /// Estado somente em memória.
 ///
@@ -17,11 +18,13 @@ class AppStore extends ChangeNotifier {
     required List<MaterialItem> materials,
     required List<ChatThread> threads,
     Map<String, List<ChatMessage>>? messagesByThread,
+    LocalDatabase? database,
   })  : _events = events,
         _tasks = tasks,
         _materials = materials,
         _threads = threads,
-        _messagesByThread = messagesByThread ?? <String, List<ChatMessage>>{};
+        _messagesByThread = messagesByThread ?? <String, List<ChatMessage>>{},
+        _database = database;
 
   factory AppStore.memory() => AppStore(
         events: <AgendaEvent>[],
@@ -30,8 +33,18 @@ class AppStore extends ChangeNotifier {
         threads: <ChatThread>[],
       );
 
+  factory AppStore.local(LocalDatabase database) => AppStore(
+        events: <AgendaEvent>[],
+        tasks: <AgendaTask>[],
+        materials: <MaterialItem>[],
+        threads: <ChatThread>[],
+        database: database,
+      );
+
   factory AppStore.empty() => AppStore.memory();
 
+  final LocalDatabase? _database;
+  final Set<Future<void>> _pendingWrites = <Future<void>>{};
   final List<AgendaEvent> _events;
   final List<AgendaTask> _tasks;
   final List<MaterialItem> _materials;
@@ -54,6 +67,22 @@ class AppStore extends ChangeNotifier {
     return null;
   }
 
+  Future<void> loadCoreData() async {
+    final database = _database;
+    if (database == null) return;
+
+    _events
+      ..clear()
+      ..addAll(await database.loadEvents());
+    _tasks
+      ..clear()
+      ..addAll(await database.loadTasks());
+    _materials
+      ..clear()
+      ..addAll(await database.loadMaterials());
+    notifyListeners();
+  }
+
   List<AgendaEvent> eventsForDay(DateTime date) {
     final result = _events.where((event) => _sameDay(event.start.toLocal(), date)).toList()
       ..sort((a, b) => a.start.compareTo(b.start));
@@ -63,11 +92,13 @@ class AppStore extends ChangeNotifier {
   void addEvent(AgendaEvent event) {
     _events.add(event);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertEvent(event));
   }
 
   void removeEvent(String id) {
     _events.removeWhere((event) => event.id == id);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.deleteEvent(id));
   }
 
   bool hasConflict(AgendaEvent candidate) {
@@ -79,11 +110,13 @@ class AppStore extends ChangeNotifier {
   void addTask(AgendaTask task) {
     _tasks.add(task);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertTask(task));
   }
 
   void removeTask(String id) {
     _tasks.removeWhere((task) => task.id == id);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.deleteTask(id));
   }
 
   void toggleTask(String id) {
@@ -91,6 +124,7 @@ class AppStore extends ChangeNotifier {
     if (index == -1) return;
     _tasks[index] = _tasks[index].copyWith(completed: !_tasks[index].completed);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertTask(_tasks[index]));
   }
 
   ChatThread createThread({String title = 'Nova conversa'}) {
@@ -153,17 +187,20 @@ class AppStore extends ChangeNotifier {
       ..clear()
       ..addAll(items);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.replaceMaterials(items));
   }
 
   void addMaterial(MaterialItem item) {
     _materials.removeWhere((existing) => existing.name == item.name);
     _materials.insert(0, item);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertMaterial(item));
   }
 
   void removeMaterial(String name) {
     _materials.removeWhere((item) => item.name == name);
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.deleteMaterial(name));
   }
 
   void clearSession() {
@@ -173,6 +210,16 @@ class AppStore extends ChangeNotifier {
     _threads.clear();
     _messagesByThread.clear();
     notifyListeners();
+  }
+
+  void _queueWrite(Future<void> write) {
+    _pendingWrites.add(write);
+    write.whenComplete(() => _pendingWrites.remove(write));
+  }
+
+  Future<void> flush() async {
+    if (_pendingWrites.isEmpty) return;
+    await Future.wait(List<Future<void>>.from(_pendingWrites));
   }
 
   static bool _sameDay(DateTime a, DateTime b) =>
