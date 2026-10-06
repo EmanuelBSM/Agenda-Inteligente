@@ -31,4 +31,22 @@ class ChatThread {
           : (previousInteractionId ?? this.previousInteractionId),
     );
   }
+
+  Map<String, dynamic> toDbMap() => {
+        'id': id,
+        'title': title,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+        'previous_interaction_id': previousInteractionId,
+      };
+
+  factory ChatThread.fromDbMap(Map<String, Object?> map) {
+    return ChatThread(
+      id: map['id']! as String,
+      title: map['title']! as String,
+      createdAt: DateTime.parse(map['created_at']! as String),
+      updatedAt: DateTime.parse(map['updated_at']! as String),
+      previousInteractionId: map['previous_interaction_id'] as String?,
+    );
+  }
 }

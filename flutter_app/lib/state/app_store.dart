@@ -83,6 +83,20 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadChats() async {
+    final database = _database;
+    if (database == null) return;
+
+    _threads
+      ..clear()
+      ..addAll(await database.loadThreads());
+    _messagesByThread.clear();
+    for (final thread in _threads) {
+      _messagesByThread[thread.id] = await database.loadMessages(thread.id);
+    }
+    notifyListeners();
+  }
+
   List<AgendaEvent> eventsForDay(DateTime date) {
     final result = _events.where((event) => _sameDay(event.start.toLocal(), date)).toList()
       ..sort((a, b) => a.start.compareTo(b.start));
@@ -138,6 +152,7 @@ class AppStore extends ChangeNotifier {
     _threads.insert(0, thread);
     _messagesByThread[thread.id] = <ChatMessage>[];
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertThread(thread));
     return thread;
   }
 
@@ -156,30 +171,36 @@ class AppStore extends ChangeNotifier {
       _threads
         ..removeAt(threadIndex)
         ..insert(0, updated);
+      if (_database != null) _queueWrite(_database!.upsertThread(updated));
     }
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertMessage(message));
   }
 
   void updateThreadInteraction(String threadId, String? interactionId) {
     final index = _threads.indexWhere((thread) => thread.id == threadId);
     if (index < 0) return;
     final old = _threads[index];
-    _threads[index] = interactionId == null
+    final updated = interactionId == null
         ? old.copyWith(clearPreviousInteractionId: true, updatedAt: DateTime.now())
         : old.copyWith(previousInteractionId: interactionId, updatedAt: DateTime.now());
+    _threads[index] = updated;
     notifyListeners();
+    if (_database != null) _queueWrite(_database!.upsertThread(updated));
   }
 
   Future<void> clearMessages(String threadId) async {
     _messagesByThread[threadId]?.clear();
     updateThreadInteraction(threadId, null);
     notifyListeners();
+    if (_database != null) await _database!.clearMessages(threadId);
   }
 
   Future<void> deleteThread(String threadId) async {
     _threads.removeWhere((thread) => thread.id == threadId);
     _messagesByThread.remove(threadId);
     notifyListeners();
+    if (_database != null) await _database!.deleteThread(threadId);
   }
 
   void replaceMaterials(List<MaterialItem> items) {

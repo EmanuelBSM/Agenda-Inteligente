@@ -7,6 +7,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
 import '../models/agenda_event.dart';
 import '../models/agenda_task.dart';
+import '../models/chat_message.dart';
+import '../models/chat_thread.dart';
 import '../models/material_item.dart';
 
 class LocalDatabase {
@@ -32,11 +34,14 @@ class LocalDatabase {
     final path = inMemory ? sqflite.inMemoryDatabasePath : await _databasePath();
     _database = await sqflite.openDatabase(
       path,
-      version: 1,
+      version: 2,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _createSchema,
+      onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 2) await _createChatSchema(database);
+      },
     );
   }
 
@@ -76,6 +81,47 @@ class LocalDatabase {
     ''');
     await database.execute('CREATE INDEX idx_events_start ON events(start)');
     await database.execute('CREATE INDEX idx_tasks_deadline ON tasks(deadline)');
+    await _createChatSchema(database);
+  }
+
+  Future<void> _createChatSchema(sqflite.Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS chat_threads (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        previous_interaction_id TEXT
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        thread_id TEXT NOT NULL,
+        text TEXT NOT NULL,
+        from_user INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        event_id TEXT,
+        event_title TEXT,
+        event_start TEXT,
+        event_end TEXT,
+        event_description TEXT,
+        event_location TEXT,
+        task_id TEXT,
+        task_title TEXT,
+        task_deadline TEXT,
+        task_deadline_has_time INTEGER,
+        task_priority TEXT,
+        study_blocks_json TEXT,
+        FOREIGN KEY(thread_id) REFERENCES chat_threads(id) ON DELETE CASCADE
+      )
+    ''');
+    await database.execute(
+      'CREATE INDEX IF NOT EXISTS idx_threads_updated ON chat_threads(updated_at)',
+    );
+    await database.execute(
+      'CREATE INDEX IF NOT EXISTS idx_messages_thread_date ON chat_messages(thread_id, created_at)',
+    );
   }
 
   Future<String> _databasePath() async {
@@ -146,5 +192,44 @@ class LocalDatabase {
 
   Future<void> deleteMaterial(String name) async {
     await db.delete('materials_cache', where: 'name = ?', whereArgs: [name]);
+  }
+
+  Future<List<ChatThread>> loadThreads() async {
+    final rows = await db.query('chat_threads', orderBy: 'updated_at DESC');
+    return rows.map(ChatThread.fromDbMap).toList();
+  }
+
+  Future<void> upsertThread(ChatThread thread) async {
+    await db.insert(
+      'chat_threads',
+      thread.toDbMap(),
+      conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deleteThread(String threadId) async {
+    await db.delete('chat_threads', where: 'id = ?', whereArgs: [threadId]);
+  }
+
+  Future<List<ChatMessage>> loadMessages(String threadId) async {
+    final rows = await db.query(
+      'chat_messages',
+      where: 'thread_id = ?',
+      whereArgs: [threadId],
+      orderBy: 'created_at ASC',
+    );
+    return rows.map(ChatMessage.fromDbMap).toList();
+  }
+
+  Future<void> upsertMessage(ChatMessage message) async {
+    await db.insert(
+      'chat_messages',
+      message.toDbMap(),
+      conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> clearMessages(String threadId) async {
+    await db.delete('chat_messages', where: 'thread_id = ?', whereArgs: [threadId]);
   }
 }

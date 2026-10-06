@@ -10,6 +10,7 @@ Future<void> main() async {
   await database.initialize();
   final store = AppStore.local(database);
   await store.loadCoreData();
+  await store.loadChats();
   runApp(AgendaInteligenteApp(store: store, database: database));
 }
 
