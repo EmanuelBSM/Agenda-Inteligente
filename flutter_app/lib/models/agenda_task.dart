@@ -34,4 +34,28 @@ class AgendaTask {
       completed: completed ?? this.completed,
     );
   }
+
+  Map<String, dynamic> toDbMap() => {
+        'id': id,
+        'title': title,
+        'deadline': deadline?.toIso8601String(),
+        'deadline_has_time': deadlineHasTime ? 1 : 0,
+        'priority': priority.name,
+        'completed': completed ? 1 : 0,
+      };
+
+  factory AgendaTask.fromDbMap(Map<String, Object?> map) {
+    final priorityName = map['priority']?.toString() ?? TaskPriority.media.name;
+    return AgendaTask(
+      id: map['id']! as String,
+      title: map['title']! as String,
+      deadline: map['deadline'] == null ? null : DateTime.tryParse(map['deadline']! as String),
+      deadlineHasTime: (map['deadline_has_time'] as int? ?? 0) == 1,
+      priority: TaskPriority.values.firstWhere(
+        (value) => value.name == priorityName,
+        orElse: () => TaskPriority.media,
+      ),
+      completed: (map['completed'] as int? ?? 0) == 1,
+    );
+  }
 }

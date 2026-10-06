@@ -34,4 +34,30 @@ class MaterialItem {
       remote: true,
     );
   }
+
+  Map<String, dynamic> toDbMap() => {
+        'name': name,
+        'display_name': displayName,
+        'mime_type': mimeType,
+        'size_bytes': sizeBytes,
+        'create_time': createTime?.toIso8601String(),
+        'uri': uri,
+        'state': state,
+        'category': category,
+        'remote': remote ? 1 : 0,
+      };
+
+  factory MaterialItem.fromDbMap(Map<String, Object?> map) {
+    return MaterialItem(
+      name: map['name']! as String,
+      displayName: map['display_name']! as String,
+      mimeType: map['mime_type']! as String,
+      sizeBytes: map['size_bytes'] as int?,
+      createTime: map['create_time'] == null ? null : DateTime.tryParse(map['create_time']! as String),
+      uri: map['uri'] as String?,
+      state: map['state'] as String?,
+      category: map['category'] as String? ?? 'Todos',
+      remote: (map['remote'] as int? ?? 0) == 1,
+    );
+  }
 }
