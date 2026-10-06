@@ -204,12 +204,11 @@ class _MaterialsTabState extends State<MaterialsTab> {
   }
 
   Future<void> _pickAndUploadPdf() async {
-    final result = await FilePicker.platform.pickFiles(
+    final pickedFile = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['pdf'],
-      allowMultiple: false,
     );
-    final path = result?.files.single.path;
+    final path = pickedFile?.path;
     if (path == null) return;
     final file = File(path);
     final size = await file.length();

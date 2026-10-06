@@ -24,6 +24,8 @@ class AssistantReply {
 }
 
 class ApiService {
+  static const String defaultBaseUrl = 'http://localhost:3000';
+
   ApiService({http.Client? client, String? baseUrl})
       : _client = client ?? http.Client(),
         baseUrl = baseUrl ?? _resolveBaseUrl();
@@ -34,7 +36,7 @@ class ApiService {
   static String _resolveBaseUrl() {
     const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (configured.isNotEmpty) return configured;
-    return Platform.isAndroid ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+    return defaultBaseUrl;
   }
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
