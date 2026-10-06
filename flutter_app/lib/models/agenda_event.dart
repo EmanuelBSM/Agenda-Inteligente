@@ -42,8 +42,9 @@ class AgendaEvent {
         'location': location,
       };
 
-  Map<String, dynamic> toDbMap() => {
+  Map<String, dynamic> toDbMap(int userId) => {
         'id': id,
+        'user_id': userId,
         'title': title,
         'start': start.toIso8601String(),
         'end': end.toIso8601String(),

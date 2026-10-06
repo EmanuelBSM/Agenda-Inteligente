@@ -24,8 +24,9 @@ class ChatMessage {
   final AgendaTask? suggestedTask;
   final List<AgendaEvent> suggestedStudyBlocks;
 
-  Map<String, dynamic> toDbMap() => {
+  Map<String, dynamic> toDbMap(int userId) => {
         'id': id,
+        'user_id': userId,
         'thread_id': threadId,
         'text': text,
         'from_user': fromUser ? 1 : 0,
@@ -107,13 +108,13 @@ class ChatMessage {
           }
         }
       } catch (_) {
-        // Uma mensagem corrompida não deve impedir o restante do histórico de carregar.
+        // Uma mensagem antiga ou corrompida não deve impedir o carregamento do chat.
       }
     }
 
     return ChatMessage(
       id: map['id']! as String,
-      threadId: map['thread_id']! as String,
+      threadId: map['thread_id'] as String? ?? 'legacy',
       text: map['text']! as String,
       fromUser: (map['from_user'] as int? ?? 0) == 1,
       createdAt: DateTime.parse(map['created_at']! as String),

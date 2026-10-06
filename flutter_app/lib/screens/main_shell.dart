@@ -26,12 +26,19 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int index = 0;
 
+  void _logout() {
+    // O AuthGate em main.dart detecta currentUser == null e volta ao login.
+    // Não manipulamos a pilha do Navigator durante o logout.
+    widget.store.clearUser();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
       HomeTab(
         store: widget.store,
         onNavigate: (value) => setState(() => index = value),
+        onLogout: _logout,
       ),
       CalendarTab(store: widget.store),
       TasksTab(store: widget.store),

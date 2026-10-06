@@ -32,8 +32,9 @@ class ChatThread {
     );
   }
 
-  Map<String, dynamic> toDbMap() => {
+  Map<String, dynamic> toDbMap(int userId) => {
         'id': id,
+        'user_id': userId,
         'title': title,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),

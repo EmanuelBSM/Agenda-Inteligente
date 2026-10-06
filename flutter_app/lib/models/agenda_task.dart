@@ -35,8 +35,9 @@ class AgendaTask {
     );
   }
 
-  Map<String, dynamic> toDbMap() => {
+  Map<String, dynamic> toDbMap(int userId) => {
         'id': id,
+        'user_id': userId,
         'title': title,
         'deadline': deadline?.toIso8601String(),
         'deadline_has_time': deadlineHasTime ? 1 : 0,

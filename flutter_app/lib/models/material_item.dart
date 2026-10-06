@@ -35,8 +35,9 @@ class MaterialItem {
     );
   }
 
-  Map<String, dynamic> toDbMap() => {
+  Map<String, dynamic> toDbMap(int userId) => {
         'name': name,
+        'user_id': userId,
         'display_name': displayName,
         'mime_type': mimeType,
         'size_bytes': sizeBytes,

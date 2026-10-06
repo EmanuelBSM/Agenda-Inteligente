@@ -1,7 +1,7 @@
 name: agenda_inteligente_gemini
-description: Agenda Inteligente com Gemini, sem login e sem persistência local.
 publish_to: 'none'
-version: 1.4.1+7
+description: Agenda Inteligente com Gemini em Flutter.
+version: 1.4.0+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -16,6 +16,7 @@ dependencies:
   sqflite_common_ffi: ^2.3.4+4
   path: ^1.9.0
   path_provider: ^2.1.5
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:

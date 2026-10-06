@@ -46,7 +46,12 @@ class _MaterialsTabState extends State<MaterialsTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Meus Materiais', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
+                      Row(
+                        children: [
+                          const Expanded(child: Text('Meus Materiais', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800))),
+                          IconButton(onPressed: _loadRemoteFiles, icon: const Icon(Icons.more_horiz_rounded, size: 28)),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       InkWell(
                         key: const Key('materials-upload'),
@@ -232,6 +237,20 @@ class _MaterialsTabState extends State<MaterialsTab> {
     }
   }
 
+  Future<void> _loadRemoteFiles() async {
+    setState(() => loading = true);
+    try {
+      final files = await widget.apiService.listFiles();
+      if (files.isNotEmpty) widget.store.replaceMaterials(files);
+      _showMessage(files.isEmpty ? 'Nenhum arquivo remoto encontrado.' : '${files.length} arquivo(s) carregado(s).');
+    } on ApiException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('Não consegui consultar os arquivos no backend.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
 
   Future<void> _delete(MaterialItem item) async {
     if (!item.remote) {

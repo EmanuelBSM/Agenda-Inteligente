@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'screens/main_shell.dart';
+import 'screens/auth_gate.dart';
+import 'services/local_auth_service.dart';
 import 'services/local_database.dart';
 import 'state/app_store.dart';
 
@@ -8,20 +9,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = LocalDatabase();
   await database.initialize();
-  final store = AppStore.local(database);
-  await store.loadCoreData();
-  await store.loadChats();
-  runApp(AgendaInteligenteApp(store: store, database: database));
+  runApp(AgendaInteligenteApp(database: database));
 }
 
 class AgendaInteligenteApp extends StatefulWidget {
-  const AgendaInteligenteApp({
-    required this.store,
-    required this.database,
-    super.key,
-  });
+  const AgendaInteligenteApp({super.key, required this.database});
 
-  final AppStore store;
   final LocalDatabase database;
 
   @override
@@ -29,11 +22,14 @@ class AgendaInteligenteApp extends StatefulWidget {
 }
 
 class _AgendaInteligenteAppState extends State<AgendaInteligenteApp> {
+  late final AppStore store;
+  late final AuthService authService;
+
   @override
-  void dispose() {
-    widget.store.flush().whenComplete(widget.database.close);
-    widget.store.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    store = AppStore.local(widget.database);
+    authService = LocalAuthService(widget.database);
   }
 
   @override
@@ -81,7 +77,7 @@ class _AgendaInteligenteAppState extends State<AgendaInteligenteApp> {
           ),
         ),
       ),
-      home: MainShell(store: widget.store),
+      home: AuthGate(store: store, authService: authService),
     );
   }
 }
