@@ -4,12 +4,12 @@ Esta versão já possui as principais funcionalidades, mas está sem banco de da
 
 ## O que falta fazer
 
-- Login e cadastro
-- Contas de usuário
-- Persistência de eventos
-- Persistência de tarefas
-- Persistência de conversas
-- Fazer e Testar versão mobile
+- Login e cadastro ✓
+- Contas de usuário ✓
+- Persistência de eventos ✓
+- Persistência de tarefas ✓
+- Persistência de conversas ✓
+- Fazer e Testar versão mobile ✓
 
 
 ## O que já possui
@@ -31,6 +31,13 @@ Esta versão já possui as principais funcionalidades, mas está sem banco de da
 - Dart 3.3 ou superior
 - Node.js 20+
 - Uma chave da Gemini API
+- Conexão com a internet
+- Microfone para usar o chat por voz
+
+### Para Windows
+
+- Visual Studio com o workload `Desktop development with C++`
+- Permissão de acesso ao microfone ativada no Windows
 
 ## 1. Configurar a chave
 

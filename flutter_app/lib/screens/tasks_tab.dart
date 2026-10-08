@@ -122,147 +122,193 @@ class _TasksTabState extends State<TasksTab> {
   }
 
   Future<void> _showAddTask() async {
-    final titleController = TextEditingController();
-    final now = DateTime.now();
-    DateTime? deadline = DateTime(now.year, now.month, now.day);
-    bool deadlineHasTime = false;
-    TimeOfDay? deadlineTime;
-    TaskPriority priority = TaskPriority.media;
-
     final task = await showModalBottomSheet<AgendaTask>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Nova tarefa', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 18),
-                  TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Título')),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final value = await showDatePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2035),
-                              initialDate: deadline ?? DateTime.now(),
-                            );
-                            if (value != null) {
-                              setModalState(() {
-                                if (deadlineHasTime && deadlineTime != null) {
-                                  deadline = DateTime(value.year, value.month, value.day, deadlineTime!.hour, deadlineTime!.minute);
-                                } else {
-                                  deadline = DateTime(value.year, value.month, value.day);
-                                }
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.calendar_month_rounded),
-                          label: Text(deadline == null ? 'Sem prazo' : formatShortDate(deadline!)),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: deadline == null
-                              ? null
-                              : () async {
-                                  final value = await showTimePicker(
-                                    context: context,
-                                    initialTime: deadlineTime ?? TimeOfDay.fromDateTime(DateTime.now()),
-                                  );
-                                  if (value != null) {
-                                    setModalState(() {
-                                      deadlineTime = value;
-                                      deadlineHasTime = true;
-                                      deadline = DateTime(
-                                        deadline!.year,
-                                        deadline!.month,
-                                        deadline!.day,
-                                        value.hour,
-                                        value.minute,
-                                      );
-                                    });
-                                  }
-                                },
-                          icon: const Icon(Icons.schedule_rounded),
-                          label: Text(deadlineHasTime && deadline != null ? formatTime(deadline!) : 'Horário'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (deadlineHasTime) ...[
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          setModalState(() {
-                            deadlineHasTime = false;
-                            deadlineTime = null;
-                            if (deadline != null) {
-                              deadline = DateTime(deadline!.year, deadline!.month, deadline!.day);
-                            }
-                          });
-                        },
-                        child: const Text('Remover horário'),
-                      ),
-                    ),
-                  ],
-                  Row(
-                    children: [
-                      const Text('Prioridade:', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 12),
-                      DropdownButton<TaskPriority>(
-                        value: priority,
-                        items: TaskPriority.values
-                            .map((value) => DropdownMenuItem(value: value, child: Text(_priorityLabel(value))))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) setModalState(() => priority = value);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: () {
-                        if (titleController.text.trim().isEmpty) return;
-                        Navigator.pop(
-                          context,
-                          AgendaTask(
-                            id: 'task-${DateTime.now().microsecondsSinceEpoch}',
-                            title: titleController.text.trim(),
-                            deadline: deadline,
-                            deadlineHasTime: deadlineHasTime,
-                            priority: priority,
-                          ),
-                        );
-                      },
-                      child: const Text('Criar tarefa'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => const _TaskFormSheet(),
     );
+
+    if (task != null && mounted) {
+      widget.store.addTask(task);
+    }
+  }
+
+}
+
+class _TaskFormSheet extends StatefulWidget {
+  const _TaskFormSheet();
+
+  @override
+  State<_TaskFormSheet> createState() => _TaskFormSheetState();
+}
+
+class _TaskFormSheetState extends State<_TaskFormSheet> {
+  final titleController = TextEditingController();
+
+  late DateTime? deadline;
+  bool deadlineHasTime = false;
+  TimeOfDay? deadlineTime;
+  TaskPriority priority = TaskPriority.media;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    deadline = DateTime(now.year, now.month, now.day);
+  }
+
+  @override
+  void dispose() {
     titleController.dispose();
-    if (task != null) widget.store.addTask(task);
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDate: deadline ?? DateTime.now(),
+    );
+    if (!mounted || value == null) return;
+
+    setState(() {
+      if (deadlineHasTime && deadlineTime != null) {
+        deadline = DateTime(
+          value.year,
+          value.month,
+          value.day,
+          deadlineTime!.hour,
+          deadlineTime!.minute,
+        );
+      } else {
+        deadline = DateTime(value.year, value.month, value.day);
+      }
+    });
+  }
+
+  Future<void> _pickTime() async {
+    if (deadline == null) return;
+
+    final value = await showTimePicker(
+      context: context,
+      initialTime: deadlineTime ?? TimeOfDay.fromDateTime(DateTime.now()),
+    );
+    if (!mounted || value == null) return;
+
+    setState(() {
+      deadlineTime = value;
+      deadlineHasTime = true;
+      deadline = DateTime(
+        deadline!.year,
+        deadline!.month,
+        deadline!.day,
+        value.hour,
+        value.minute,
+      );
+    });
+  }
+
+  void _removeTime() {
+    setState(() {
+      deadlineHasTime = false;
+      deadlineTime = null;
+      if (deadline != null) {
+        deadline = DateTime(deadline!.year, deadline!.month, deadline!.day);
+      }
+    });
+  }
+
+  void _createTask() {
+    final title = titleController.text.trim();
+    if (title.isEmpty) return;
+
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).pop(
+      AgendaTask(
+        id: 'task-${DateTime.now().microsecondsSinceEpoch}',
+        title: title,
+        deadline: deadline,
+        deadlineHasTime: deadlineHasTime,
+        priority: priority,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardInset + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Nova tarefa', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 18),
+          TextField(
+            controller: titleController,
+            decoration: const InputDecoration(labelText: 'Título'),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _createTask(),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_month_rounded),
+                  label: Text(deadline == null ? 'Sem prazo' : formatShortDate(deadline!)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: deadline == null ? null : _pickTime,
+                  icon: const Icon(Icons.schedule_rounded),
+                  label: Text(deadlineHasTime && deadline != null ? formatTime(deadline!) : 'Horário'),
+                ),
+              ),
+            ],
+          ),
+          if (deadlineHasTime)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _removeTime,
+                child: const Text('Remover horário'),
+              ),
+            ),
+          Row(
+            children: [
+              const Text('Prioridade:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(width: 12),
+              DropdownButton<TaskPriority>(
+                value: priority,
+                items: TaskPriority.values
+                    .map((value) => DropdownMenuItem(value: value, child: Text(_priorityLabel(value))))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => priority = value);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: _createTask,
+              child: const Text('Criar tarefa'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
