@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/agenda_task.dart';
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 
 class TasksTab extends StatefulWidget {
@@ -50,7 +51,7 @@ class _TasksTabState extends State<TasksTab> {
                   children: [
                     Row(
                       children: [
-                        const Expanded(child: Text('Tarefas', style: TextStyle(fontSize: 31, fontWeight: FontWeight.w800))),
+                        const Expanded(child: Text('Tarefas', style: TextStyle(fontSize: 31, fontWeight: FontWeight.w800, color: AppColors.ink))),
                         IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert_rounded, size: 28)),
                       ],
                     ),
@@ -62,9 +63,9 @@ class _TasksTabState extends State<TasksTab> {
                         hintText: 'Buscar tarefas...',
                         prefixIcon: const Icon(Icons.search_rounded),
                         filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(14)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(14)),
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                        enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -79,10 +80,10 @@ class _TasksTabState extends State<TasksTab> {
                               label: SizedBox(width: double.infinity, child: Text(label, textAlign: TextAlign.center)),
                               selected: selected,
                               onSelected: (_) => setState(() => filter = label),
-                              selectedColor: const Color(0xFF3D3D3D),
+                              selectedColor: AppColors.primary,
                               backgroundColor: Colors.white,
-                              labelStyle: TextStyle(color: selected ? Colors.white : Colors.black, fontWeight: FontWeight.w600),
-                              side: const BorderSide(color: Color(0xFFDADADA)),
+                              labelStyle: TextStyle(color: selected ? Colors.white : AppColors.ink, fontWeight: FontWeight.w600),
+                              side: const BorderSide(color: AppColors.border),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
@@ -107,7 +108,7 @@ class _TasksTabState extends State<TasksTab> {
                 bottom: 20,
                 child: FloatingActionButton(
                   heroTag: 'tasks-add',
-                  backgroundColor: const Color(0xFF3A3A3A),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   onPressed: _showAddTask,
                   child: const Icon(Icons.add_rounded, size: 34),
@@ -278,7 +279,7 @@ class _TaskCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3E3)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,8 +287,8 @@ class _TaskCard extends StatelessWidget {
           Checkbox(
             value: task.completed,
             onChanged: (_) => onToggle(),
-            activeColor: const Color(0xFF444444),
-            side: const BorderSide(color: Color(0xFF555555), width: 1.5),
+            activeColor: AppColors.success,
+            side: const BorderSide(color: AppColors.muted, width: 1.5),
           ),
           const SizedBox(width: 4),
           Expanded(
@@ -300,20 +301,20 @@ class _TaskCard extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     decoration: task.completed ? TextDecoration.lineThrough : null,
-                    color: task.completed ? const Color(0xFF777777) : Colors.black,
+                    color: task.completed ? AppColors.muted : AppColors.ink,
                   ),
                 ),
                 if (task.deadline != null) ...[
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_month_outlined, size: 18, color: Color(0xFF777777)),
+                      const Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.muted),
                       const SizedBox(width: 5),
                       Text(
                         task.deadlineHasTime
                             ? '${formatShortDate(task.deadline!)} • ${formatTime(task.deadline!)}'
                             : formatShortDate(task.deadline!),
-                        style: const TextStyle(color: Color(0xFF777777)),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                     ],
                   ),
@@ -324,8 +325,14 @@ class _TaskCard extends StatelessWidget {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(16)),
-            child: Text(_priorityLabel(task.priority), style: const TextStyle(fontWeight: FontWeight.w600)),
+            decoration: BoxDecoration(
+              color: _priorityBackground(task.priority),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              _priorityLabel(task.priority),
+              style: TextStyle(fontWeight: FontWeight.w700, color: _priorityColor(task.priority)),
+            ),
           ),
         ],
       ),
@@ -337,4 +344,16 @@ String _priorityLabel(TaskPriority value) => switch (value) {
       TaskPriority.alta => 'Alta',
       TaskPriority.media => 'Média',
       TaskPriority.baixa => 'Baixa',
+    };
+
+Color _priorityColor(TaskPriority value) => switch (value) {
+      TaskPriority.alta => AppColors.danger,
+      TaskPriority.media => const Color(0xFF9A6200),
+      TaskPriority.baixa => const Color(0xFF168A46),
+    };
+
+Color _priorityBackground(TaskPriority value) => switch (value) {
+      TaskPriority.alta => const Color(0xFFFFE8EA),
+      TaskPriority.media => const Color(0xFFFFF0CF),
+      TaskPriority.baixa => AppColors.softGreen,
     };

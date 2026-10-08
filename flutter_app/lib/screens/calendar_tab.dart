@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/agenda_event.dart';
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 
 class CalendarTab extends StatefulWidget {
@@ -45,7 +46,7 @@ class _CalendarTabState extends State<CalendarTab> {
                           child: Text(
                             'Calendário',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.ink),
                           ),
                         ),
                         const SizedBox(width: 40),
@@ -64,7 +65,7 @@ class _CalendarTabState extends State<CalendarTab> {
                           child: Text(
                             formatMonthYear(visibleMonth),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: AppColors.ink),
                           ),
                         ),
                         IconButton(
@@ -86,7 +87,7 @@ class _CalendarTabState extends State<CalendarTab> {
                     const SizedBox(height: 24),
                     Text(
                       formatLongDate(selectedDate),
-                      style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+                      style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: AppColors.ink),
                     ),
                     const SizedBox(height: 14),
                     if (events.isEmpty)
@@ -94,9 +95,9 @@ class _CalendarTabState extends State<CalendarTab> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F7),
+                          color: AppColors.softBlue,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE4E4E4)),
+                          border: Border.all(color: AppColors.border),
                         ),
                         child: const Text('Nenhum compromisso para este dia.'),
                       )
@@ -113,7 +114,7 @@ class _CalendarTabState extends State<CalendarTab> {
                 bottom: 20,
                 child: FloatingActionButton(
                   heroTag: 'calendar-add',
-                  backgroundColor: const Color(0xFF3A3A3A),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   onPressed: _showAddEvent,
                   child: const Icon(Icons.add_rounded, size: 34),
@@ -278,11 +279,11 @@ class _MonthGrid extends StatelessWidget {
               width: 42,
               height: 42,
               alignment: Alignment.center,
-              decoration: selected ? const BoxDecoration(color: Color(0xFF424242), shape: BoxShape.circle) : null,
+              decoration: selected ? const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle) : null,
               child: Text(
                 '${date.day}',
                 style: TextStyle(
-                  color: selected ? Colors.white : (inMonth ? Colors.black : const Color(0xFFA8A8A8)),
+                  color: selected ? Colors.white : (inMonth ? AppColors.ink : AppColors.muted),
                   fontSize: 15,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 ),
@@ -305,21 +306,21 @@ class _EventCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3E3)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.circle, size: 13, color: Color(0xFF5B5B5B)),
+          const Icon(Icons.circle, size: 13, color: AppColors.primary),
           const SizedBox(width: 13),
           SizedBox(
             width: 64,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(formatTime(event.start), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                Text(formatTime(event.end), style: const TextStyle(fontSize: 15, color: Color(0xFF777777))),
+                Text(formatTime(event.start), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                Text(formatTime(event.end), style: const TextStyle(fontSize: 15, color: AppColors.muted)),
               ],
             ),
           ),
@@ -328,8 +329,8 @@ class _EventCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(event.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                if (event.location != null) Text(event.location!, style: const TextStyle(fontSize: 14, color: Color(0xFF777777))),
+                Text(event.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                if (event.location != null) Text(event.location!, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
               ],
             ),
           ),

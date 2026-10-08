@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import '../models/material_item.dart';
 import '../services/api_service.dart';
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
+import '../widgets/gradient_button.dart';
 
 class MaterialsTab extends StatefulWidget {
   const MaterialsTab({
@@ -48,7 +50,7 @@ class _MaterialsTabState extends State<MaterialsTab> {
                     children: [
                       Row(
                         children: [
-                          const Expanded(child: Text('Meus Materiais', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800))),
+                          const Expanded(child: Text('Meus Materiais', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.ink))),
                           IconButton(onPressed: _loadRemoteFiles, icon: const Icon(Icons.more_horiz_rounded, size: 28)),
                         ],
                       ),
@@ -61,9 +63,9 @@ class _MaterialsTabState extends State<MaterialsTab> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
+                            color: AppColors.softBlue,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFD8D8D8)),
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Column(
                             children: [
@@ -73,14 +75,14 @@ class _MaterialsTabState extends State<MaterialsTab> {
                                 Container(
                                   width: 76,
                                   height: 76,
-                                  decoration: const BoxDecoration(color: Color(0xFFEFEFEF), shape: BoxShape.circle),
-                                  child: const Icon(Icons.cloud_upload_outlined, size: 44, color: Color(0xFF555555)),
+                                  decoration: const BoxDecoration(color: AppColors.softPurple, shape: BoxShape.circle),
+                                  child: const Icon(Icons.cloud_upload_outlined, size: 44, color: AppColors.primary),
                                 ),
                               const SizedBox(height: 12),
                               Text(loading ? 'Enviando...' : 'Enviar PDF', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                               const SizedBox(height: 5),
-                              const Text('Toque para selecionar um arquivo', style: TextStyle(fontSize: 15, color: Color(0xFF666666))),
-                              const Text('PDF (máx. 20 MB)', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+                              const Text('Toque para selecionar um arquivo', style: TextStyle(fontSize: 15, color: AppColors.muted)),
+                              const Text('PDF (máx. 20 MB)', style: TextStyle(fontSize: 14, color: AppColors.muted)),
                             ],
                           ),
                         ),
@@ -98,10 +100,10 @@ class _MaterialsTabState extends State<MaterialsTab> {
                                 label: Text(label),
                                 selected: selectedChip,
                                 onSelected: (_) => setState(() => category = label),
-                                selectedColor: const Color(0xFF3E3E3E),
+                                selectedColor: AppColors.primary,
                                 backgroundColor: Colors.white,
-                                labelStyle: TextStyle(color: selectedChip ? Colors.white : Colors.black, fontWeight: FontWeight.w600),
-                                side: const BorderSide(color: Color(0xFFD9D9D9)),
+                                labelStyle: TextStyle(color: selectedChip ? Colors.white : AppColors.ink, fontWeight: FontWeight.w600),
+                                side: const BorderSide(color: AppColors.border),
                               ),
                             );
                           }).toList(),
@@ -118,10 +120,10 @@ class _MaterialsTabState extends State<MaterialsTab> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                               decoration: BoxDecoration(
-                                color: selectedRow ? const Color(0xFFF3F3F3) : Colors.white,
+                                color: selectedRow ? AppColors.softPurple : Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: selectedRow ? const Color(0xFF777777) : const Color(0xFFE0E0E0),
+                                  color: selectedRow ? AppColors.primary : AppColors.border,
                                   width: selectedRow ? 1.3 : 1,
                                 ),
                               ),
@@ -137,7 +139,7 @@ class _MaterialsTabState extends State<MaterialsTab> {
                                         const SizedBox(height: 3),
                                         Text(
                                           '${formatBytes(item.sizeBytes)} • ${item.createTime == null ? 'sem data' : formatShortDate(item.createTime!)}',
-                                          style: const TextStyle(fontSize: 13, color: Color(0xFF777777)),
+                                          style: const TextStyle(fontSize: 13, color: AppColors.muted),
                                         ),
                                       ],
                                     ),
@@ -168,15 +170,17 @@ class _MaterialsTabState extends State<MaterialsTab> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Column(
                   children: [
-                    SizedBox(
-                      width: double.infinity,
+                    GradientButton(
+                      key: const Key('materials-summary'),
                       height: 50,
-                      child: FilledButton.icon(
-                        key: const Key('materials-summary'),
-                        onPressed: selected == null || loading ? null : () => _summarize(selected),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF3E3E3E)),
-                        icon: const Icon(Icons.description_outlined),
-                        label: const Text('Resumir PDF', style: TextStyle(fontWeight: FontWeight.w700)),
+                      onPressed: selected == null || loading ? null : () => _summarize(selected),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.description_outlined, color: Colors.white),
+                          SizedBox(width: 9),
+                          Text('Resumir PDF', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -185,7 +189,7 @@ class _MaterialsTabState extends State<MaterialsTab> {
                       height: 50,
                       child: OutlinedButton.icon(
                         onPressed: selected == null || loading ? null : () => _ask(selected),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.black, side: const BorderSide(color: Color(0xFF555555))),
+                        style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: const BorderSide(color: AppColors.primary)),
                         icon: const Icon(Icons.chat_bubble_outline_rounded),
                         label: const Text('Perguntar ao material', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),

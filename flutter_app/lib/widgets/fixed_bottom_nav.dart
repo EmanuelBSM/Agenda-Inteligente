@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class FixedBottomNav extends StatelessWidget {
   const FixedBottomNav({
     super.key,
@@ -23,7 +25,8 @@ class FixedBottomNav extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE4E4E4))),
+        border: Border(top: BorderSide(color: AppColors.border)),
+        boxShadow: [BoxShadow(color: Color(0x0F11182D), blurRadius: 14, offset: Offset(0, -3))],
       ),
       child: SafeArea(
         top: false,
@@ -34,8 +37,8 @@ class FixedBottomNav extends StatelessWidget {
             onTap: onTap,
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
-            selectedItemColor: Colors.black,
-            unselectedItemColor: const Color(0xFF777777),
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.muted,
             selectedFontSize: 12,
             unselectedFontSize: 12,
             iconSize: 27,

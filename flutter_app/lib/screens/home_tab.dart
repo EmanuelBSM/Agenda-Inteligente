@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/soft_card.dart';
 
@@ -43,6 +44,7 @@ class HomeTab extends StatelessWidget {
                           fontSize: 25,
                           height: 1.05,
                           fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
                         ),
                       ),
                     ),
@@ -51,6 +53,7 @@ class HomeTab extends StatelessWidget {
                       icon: const Icon(
                         Icons.account_circle_outlined,
                         size: 30,
+                        color: AppColors.ink,
                       ),
                       onSelected: (value) {
                         if (value == 'logout') {
@@ -77,6 +80,7 @@ class HomeTab extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 27,
                     fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -84,19 +88,23 @@ class HomeTab extends StatelessWidget {
                   'Aqui está o seu resumo de hoje.',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF666666),
+                    color: AppColors.muted,
                   ),
                 ),
                 const SizedBox(height: 24),
                 _SummaryCard(
                   icon: Icons.calendar_month_rounded,
+                  iconColor: AppColors.primary,
+                  iconBackground: AppColors.softBlue,
                   label: 'Compromissos hoje',
                   value: '${events.length}',
                   onTap: () => onNavigate(1),
                 ),
                 const SizedBox(height: 12),
                 _SummaryCard(
-                  icon: Icons.check_circle_rounded,
+                  icon: Icons.check_rounded,
+                  iconColor: AppColors.success,
+                  iconBackground: AppColors.softGreen,
                   label: 'Tarefas pendentes',
                   value: '${store.pendingTaskCount}',
                   onTap: () => onNavigate(2),
@@ -104,6 +112,8 @@ class HomeTab extends StatelessWidget {
                 const SizedBox(height: 12),
                 _SummaryCard(
                   icon: Icons.description_rounded,
+                  iconColor: AppColors.violet,
+                  iconBackground: AppColors.softPurple,
                   label: 'Materiais',
                   value: '${store.materials.length}',
                   onTap: () => onNavigate(4),
@@ -117,6 +127,7 @@ class HomeTab extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
                         ),
                       ),
                     ),
@@ -130,15 +141,17 @@ class HomeTab extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color: const Color(0xFFE3E3E3),
-                    ),
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.border),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: events.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(18),
-                          child: Text('Nenhum compromisso hoje.'),
+                          child: Text(
+                            'Nenhum compromisso hoje.',
+                            style: TextStyle(color: AppColors.muted),
+                          ),
                         )
                       : Column(
                           children: events.take(3).map((event) {
@@ -152,7 +165,7 @@ class HomeTab extends StatelessWidget {
                                   const Icon(
                                     Icons.circle,
                                     size: 10,
-                                    color: Color(0xFF626262),
+                                    color: AppColors.primary,
                                   ),
                                   const SizedBox(width: 12),
                                   SizedBox(
@@ -162,6 +175,7 @@ class HomeTab extends StatelessWidget {
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
+                                        color: AppColors.ink,
                                       ),
                                     ),
                                   ),
@@ -176,13 +190,14 @@ class HomeTab extends StatelessWidget {
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
+                                            color: AppColors.ink,
                                           ),
                                         ),
                                         Text(
                                           event.location ?? 'Sem local',
                                           style: const TextStyle(
                                             fontSize: 13,
-                                            color: Color(0xFF777777),
+                                            color: AppColors.muted,
                                           ),
                                         ),
                                       ],
@@ -206,12 +221,16 @@ class HomeTab extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.icon,
+    required this.iconColor,
+    required this.iconBackground,
     required this.label,
     required this.value,
     required this.onTap,
   });
 
   final IconData icon;
+  final Color iconColor;
+  final Color iconBackground;
   final String label;
   final String value;
   final VoidCallback onTap;
@@ -229,14 +248,14 @@ class _SummaryCard extends StatelessWidget {
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEFEFEF),
+            decoration: BoxDecoration(
+              color: iconBackground,
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 30,
-              color: const Color(0xFF4A4A4A),
+              color: iconColor,
             ),
           ),
           const SizedBox(width: 16),
@@ -246,7 +265,10 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 16),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.ink,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -254,6 +276,7 @@ class _SummaryCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
                   ),
                 ),
               ],
@@ -261,7 +284,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           const Icon(
             Icons.chevron_right_rounded,
-            color: Color(0xFF555555),
+            color: AppColors.muted,
           ),
         ],
       ),

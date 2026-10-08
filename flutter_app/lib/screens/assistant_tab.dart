@@ -11,6 +11,7 @@ import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
 import '../services/api_service.dart';
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 
 class AssistantTab extends StatefulWidget {
@@ -312,7 +313,7 @@ class _AssistantTabState extends State<AssistantTab> {
               Row(
                 children: [
                   const Expanded(
-                    child: Text('Conversas com Gemini', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+                    child: Text('Conversas com Gemini', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.ink)),
                   ),
                   IconButton(
                     key: const Key('assistant-new-chat-top'),
@@ -325,23 +326,23 @@ class _AssistantTabState extends State<AssistantTab> {
               const SizedBox(height: 6),
               const Text(
                 'Cada assunto fica em uma conversa separada.',
-                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 15),
+                style: TextStyle(color: AppColors.muted, fontSize: 15),
               ),
               const SizedBox(height: 18),
               if (threads.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6F6F6),
+                    color: AppColors.softPurple,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: const Column(
                     children: [
-                      Icon(Icons.auto_awesome_rounded, size: 42, color: Color(0xFF4A4A4A)),
+                      Icon(Icons.auto_awesome_rounded, size: 42, color: AppColors.violet),
                       SizedBox(height: 12),
                       Text('Nenhuma conversa ainda.', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                       SizedBox(height: 5),
-                      Text('Crie uma conversa para começar.', style: TextStyle(color: Color(0xFF777777))),
+                      Text('Crie uma conversa para começar.', style: TextStyle(color: AppColors.muted)),
                     ],
                   ),
                 )
@@ -359,7 +360,7 @@ class _AssistantTabState extends State<AssistantTab> {
                         padding: const EdgeInsets.fromLTRB(16, 14, 6, 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: const Color(0xFFE1E1E1)),
+                          border: Border.all(color: AppColors.border),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -367,8 +368,8 @@ class _AssistantTabState extends State<AssistantTab> {
                             Container(
                               width: 44,
                               height: 44,
-                              decoration: const BoxDecoration(color: Color(0xFFF0F0F0), shape: BoxShape.circle),
-                              child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF4A4A4A)),
+                              decoration: const BoxDecoration(color: AppColors.softPurple, shape: BoxShape.circle),
+                              child: const Icon(Icons.auto_awesome_rounded, color: AppColors.violet),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -377,7 +378,7 @@ class _AssistantTabState extends State<AssistantTab> {
                                 children: [
                                   Text(thread.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                                   const SizedBox(height: 4),
-                                  Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF777777))),
+                                  Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
                                 ],
                               ),
                             ),
@@ -403,7 +404,7 @@ class _AssistantTabState extends State<AssistantTab> {
             child: FloatingActionButton(
               key: const Key('assistant-new-chat'),
               onPressed: _newChat,
-              backgroundColor: const Color(0xFF3A3A3A),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               child: const Icon(Icons.add_rounded, size: 32),
             ),
@@ -435,7 +436,7 @@ class _AssistantTabState extends State<AssistantTab> {
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: AppColors.ink),
                       ),
                     ),
                     PopupMenuButton<String>(
@@ -479,7 +480,7 @@ class _AssistantTabState extends State<AssistantTab> {
                       child: Text(
                         'Comece uma nova conversa com a Gemini.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Color(0xFF777777), fontSize: 16),
+                        style: TextStyle(color: AppColors.muted, fontSize: 16),
                       ),
                     ),
                   )
@@ -505,7 +506,7 @@ class _AssistantTabState extends State<AssistantTab> {
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE4E4E4))),
+              border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: Row(
               children: [
@@ -519,6 +520,7 @@ class _AssistantTabState extends State<AssistantTab> {
                       hintText: 'Digite sua mensagem...',
                       filled: true,
                       fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.attach_file_rounded, color: AppColors.muted),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -535,8 +537,8 @@ class _AssistantTabState extends State<AssistantTab> {
                         : (listening ? 'Parar gravação' : 'Falar mensagem'),
                     onPressed: (sending || transcribingVoice) ? null : _toggleVoiceInput,
                     style: IconButton.styleFrom(
-                      backgroundColor: listening ? const Color(0xFFFFE4E4) : const Color(0xFFF0F0F0),
-                      foregroundColor: listening ? const Color(0xFFB42318) : const Color(0xFF3E3E3E),
+                      backgroundColor: listening ? const Color(0xFFFFE4E4) : AppColors.softPurple,
+                      foregroundColor: listening ? AppColors.danger : AppColors.violet,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: transcribingVoice
@@ -557,7 +559,7 @@ class _AssistantTabState extends State<AssistantTab> {
                     onPressed: sending ? null : _send,
                     style: FilledButton.styleFrom(
                       padding: EdgeInsets.zero,
-                      backgroundColor: const Color(0xFF4A4A4A),
+                      backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Icon(Icons.send_rounded),
@@ -601,7 +603,7 @@ class _AssistantTabState extends State<AssistantTab> {
                   const SizedBox(height: 6),
                   const Text(
                     'A Gemini pesquisará somente nos PDFs marcados. Alterar esta seleção reinicia o contexto interno da IA para evitar mistura entre materiais.',
-                    style: TextStyle(color: Color(0xFF6B6B6B)),
+                    style: TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -736,13 +738,13 @@ class _MessageBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 310),
           margin: const EdgeInsets.only(bottom: 14, left: 56),
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-          decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(18)),
+          decoration: BoxDecoration(color: AppColors.softBlue, borderRadius: BorderRadius.circular(18)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(message.text, style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 4),
-              Text(formatTime(message.createdAt), style: const TextStyle(fontSize: 12, color: Color(0xFF777777))),
+              Text(formatTime(message.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
             ],
           ),
         ),
@@ -757,20 +759,20 @@ class _MessageBubble extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: const BoxDecoration(color: Color(0xFF4B4B4B), shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: AppColors.violet, shape: BoxShape.circle),
             child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(color: AppColors.softPurple, borderRadius: BorderRadius.circular(18)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(message.text, style: const TextStyle(fontSize: 16, height: 1.35)),
                   const SizedBox(height: 4),
-                  Text(formatTime(message.createdAt), style: const TextStyle(fontSize: 12, color: Color(0xFF777777))),
+                  Text(formatTime(message.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                   if (message.suggestedEvent != null) ...[
                     const SizedBox(height: 14),
                     _SuggestedEventCard(event: message.suggestedEvent!),
@@ -780,7 +782,7 @@ class _MessageBubble extends StatelessWidget {
                       height: 46,
                       child: FilledButton(
                         onPressed: onCreateEvent,
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF424242)),
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
                         child: const Text('Criar evento', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -795,7 +797,7 @@ class _MessageBubble extends StatelessWidget {
                       child: FilledButton(
                         key: const Key('create-suggested-task'),
                         onPressed: onCreateTask,
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF424242)),
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
                         child: const Text('Criar tarefa', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -810,7 +812,7 @@ class _MessageBubble extends StatelessWidget {
                       child: FilledButton.icon(
                         key: const Key('create-study-plan'),
                         onPressed: onCreateStudyPlan,
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF424242)),
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
                         icon: const Icon(Icons.calendar_month_rounded),
                         label: const Text('Adicionar blocos à agenda', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
@@ -844,13 +846,13 @@ class _SuggestedStudyPlanCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.school_outlined, size: 30),
+              const Icon(Icons.school_outlined, size: 30, color: AppColors.violet),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -871,7 +873,7 @@ class _SuggestedStudyPlanCard extends StatelessWidget {
                     width: 7,
                     height: 7,
                     margin: const EdgeInsets.only(top: 7, right: 9),
-                    decoration: const BoxDecoration(color: Color(0xFF555555), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                   ),
                   Expanded(
                     child: Column(
@@ -880,7 +882,7 @@ class _SuggestedStudyPlanCard extends StatelessWidget {
                         Text(block.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                         Text(
                           '${formatLongDate(block.start)} • ${formatTime(block.start)} - ${formatTime(block.end)}',
-                          style: const TextStyle(color: Color(0xFF666666), fontSize: 13),
+                          style: const TextStyle(color: AppColors.muted, fontSize: 13),
                         ),
                       ],
                     ),
@@ -904,10 +906,10 @@ class _SuggestedEventCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month_rounded, size: 36),
+          const Icon(Icons.calendar_month_rounded, size: 36, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -915,8 +917,8 @@ class _SuggestedEventCard extends StatelessWidget {
               children: [
                 Text(event.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
-                Text(formatLongDate(event.start), style: const TextStyle(color: Color(0xFF666666))),
-                Text('${formatTime(event.start)} - ${formatTime(event.end)}', style: const TextStyle(color: Color(0xFF666666))),
+                Text(formatLongDate(event.start), style: const TextStyle(color: AppColors.muted)),
+                Text('${formatTime(event.start)} - ${formatTime(event.end)}', style: const TextStyle(color: AppColors.muted)),
               ],
             ),
           ),
@@ -940,11 +942,11 @@ class _SuggestedTaskCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_box_outlined, size: 34),
+          const Icon(Icons.check_box_outlined, size: 34, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -957,11 +959,11 @@ class _SuggestedTaskCard extends StatelessWidget {
                     task.deadlineHasTime
                         ? 'Prazo: ${formatLongDate(task.deadline!)} às ${formatTime(task.deadline!)}'
                         : 'Prazo: ${formatLongDate(task.deadline!)}',
-                    style: const TextStyle(color: Color(0xFF666666)),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                 ],
                 const SizedBox(height: 3),
-                Text('Prioridade: $priority', style: const TextStyle(color: Color(0xFF666666))),
+                Text('Prioridade: $priority', style: const TextStyle(color: AppColors.muted)),
               ],
             ),
           ),
@@ -980,10 +982,10 @@ class _TypingBubble extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: Color(0xFF4B4B4B), child: Icon(Icons.auto_awesome_rounded, color: Colors.white)),
+          CircleAvatar(backgroundColor: AppColors.violet, child: Icon(Icons.auto_awesome_rounded, color: Colors.white)),
           SizedBox(width: 10),
           DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFFF2F2F2), borderRadius: BorderRadius.all(Radius.circular(18))),
+            decoration: BoxDecoration(color: AppColors.softPurple, borderRadius: BorderRadius.all(Radius.circular(18))),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),

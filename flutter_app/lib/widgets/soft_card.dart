@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class SoftCard extends StatelessWidget {
   const SoftCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.onTap,
-    this.color = const Color(0xFFF6F6F6),
+    this.color = Colors.white,
   });
 
   final Widget child;
@@ -21,7 +23,10 @@ class SoftCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A10172C), blurRadius: 18, offset: Offset(0, 7)),
+        ],
       ),
       child: child,
     );

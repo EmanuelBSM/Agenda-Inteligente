@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../services/local_auth_service.dart';
 import '../state/app_store.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/gradient_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -130,18 +132,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const AppLogo(size: 112),
+                      const AppLogo(size: 118),
                       const SizedBox(height: 18),
                       const Text(
                         'Agenda Inteligente\ncom Gemini',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 30, height: 1.08, fontWeight: FontWeight.w800),
+                        style: TextStyle(fontSize: 30, height: 1.08, fontWeight: FontWeight.w800, color: AppColors.ink),
                       ),
                       const SizedBox(height: 18),
                       const Text(
                         'Seus estudos, compromissos e\nmateriais, com o poder da IA.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 17, color: Color(0xFF666666), height: 1.35),
+                        style: TextStyle(fontSize: 17, color: AppColors.muted, height: 1.35),
                       ),
                       const SizedBox(height: 42),
                       TextField(
@@ -179,20 +181,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
+                      GradientButton(
+                        key: const Key('login-enter'),
                         height: 56,
-                        child: FilledButton(
-                          key: const Key('login-enter'),
-                          onPressed: loading ? null : _enter,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B3B3B),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: loading
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                              : const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                        ),
+                        onPressed: loading ? null : _enter,
+                        child: loading
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                            : const Text('Entrar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                       ),
                       const SizedBox(height: 20),
                       const Row(
@@ -200,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Expanded(child: Divider()),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text('ou', style: TextStyle(color: Color(0xFF666666), fontSize: 16)),
+                            child: Text('ou', style: TextStyle(color: AppColors.muted, fontSize: 16)),
                           ),
                           Expanded(child: Divider()),
                         ],
@@ -213,8 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           key: const Key('login-register'),
                           onPressed: loading ? null : _register,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            side: const BorderSide(color: Color(0xFF555555)),
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary, width: 1.4),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: const Text('Criar conta', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
