@@ -83,6 +83,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    if (loading) return;
+    final result = await showDialog<_ResetPasswordData>(
+      context: context,
+      builder: (dialogContext) => _ResetPasswordDialog(
+        initialEmail: emailController.text.trim(),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() => loading = true);
+    try {
+      await widget.authService.resetPassword(
+        email: result.email,
+        newPassword: result.newPassword,
+      );
+      emailController.text = result.email;
+      passwordController.clear();
+      _showMessage('Senha redefinida. Entre com a nova senha.');
+    } on AuthException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('Não foi possível redefinir a senha local.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -142,7 +170,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          key: const Key('login-reset-password'),
+                          onPressed: loading ? null : _resetPassword,
+                          child: const Text('Esqueci minha senha'),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -302,4 +338,114 @@ class _RegisterData {
   final String name;
   final String email;
   final String password;
+}
+
+class _ResetPasswordDialog extends StatefulWidget {
+  const _ResetPasswordDialog({required this.initialEmail});
+
+  final String initialEmail;
+
+  @override
+  State<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  final formKey = GlobalKey<FormState>();
+  late final TextEditingController emailController;
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (formKey.currentState?.validate() != true) return;
+    Navigator.of(context).pop(
+      _ResetPasswordData(
+        email: emailController.text.trim(),
+        newPassword: passwordController.text,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Redefinir senha'),
+      content: Form(
+        key: formKey,
+        child: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Esta versão usa contas locais. A redefinição acontece somente neste dispositivo e não envia e-mail.',
+                style: TextStyle(color: Color(0xFF666666)),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                key: const Key('reset-email'),
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(labelText: 'E-mail da conta'),
+                validator: (value) => (value ?? '').contains('@') ? null : 'Informe um e-mail válido.',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('reset-password'),
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Nova senha',
+                  helperText: 'Mínimo de 6 caracteres',
+                ),
+                validator: (value) => (value ?? '').length < 6 ? 'Use pelo menos 6 caracteres.' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('reset-confirm-password'),
+                controller: confirmController,
+                obscureText: true,
+                onFieldSubmitted: (_) => _submit(),
+                decoration: const InputDecoration(labelText: 'Confirmar nova senha'),
+                validator: (value) => value == passwordController.text ? null : 'As senhas não coincidem.',
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          key: const Key('reset-submit'),
+          onPressed: _submit,
+          child: const Text('Redefinir senha'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResetPasswordData {
+  const _ResetPasswordData({required this.email, required this.newPassword});
+
+  final String email;
+  final String newPassword;
 }

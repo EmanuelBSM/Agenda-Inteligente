@@ -41,11 +41,6 @@ class _CalendarTabState extends State<CalendarTab> {
                   children: [
                     Row(
                       children: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.chevron_left_rounded, size: 34),
-                          padding: EdgeInsets.zero,
-                        ),
                         const Expanded(
                           child: Text(
                             'Calendário',
@@ -338,7 +333,6 @@ class _EventCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded),
         ],
       ),
     );

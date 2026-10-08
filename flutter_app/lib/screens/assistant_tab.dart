@@ -1,4 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../models/agenda_event.dart';
 import '../models/agenda_task.dart';
@@ -25,11 +30,19 @@ class AssistantTab extends StatefulWidget {
 class _AssistantTabState extends State<AssistantTab> {
   final messageController = TextEditingController();
   final scrollController = ScrollController();
+  final speechToText = stt.SpeechToText();
+  final audioRecorder = AudioRecorder();
   String? selectedThreadId;
   bool sending = false;
+  bool speechReady = false;
+  bool listening = false;
+  bool transcribingVoice = false;
+  String voiceBaseText = '';
 
   @override
   void dispose() {
+    speechToText.cancel();
+    audioRecorder.dispose();
     messageController.dispose();
     scrollController.dispose();
     super.dispose();
@@ -49,6 +62,13 @@ class _AssistantTabState extends State<AssistantTab> {
   }
 
   Future<void> _send() async {
+    if (Platform.isWindows && listening) {
+      await audioRecorder.cancel();
+      if (mounted) setState(() => listening = false);
+    } else if (speechToText.isListening) {
+      await speechToText.stop();
+      if (mounted) setState(() => listening = false);
+    }
     final thread = selectedThread;
     final text = messageController.text.trim();
     if (thread == null || text.isEmpty || sending) return;
@@ -68,11 +88,15 @@ class _AssistantTabState extends State<AssistantTab> {
 
     try {
       final currentThread = widget.store.threadById(thread.id);
+      final selectedNames = currentThread?.selectedMaterialNames.toSet() ?? const <String>{};
+      final selectedMaterials = widget.store.materials
+          .where((item) => item.remote && selectedNames.contains(item.name))
+          .toList();
       final reply = await widget.apiService.assistant(
         message: text,
         events: widget.store.events,
         tasks: widget.store.tasks,
-        materials: widget.store.materials,
+        materials: selectedMaterials,
         previousInteractionId: currentThread?.previousInteractionId,
       );
       if (reply.interactionId != null && reply.interactionId!.isNotEmpty) {
@@ -113,6 +137,144 @@ class _AssistantTabState extends State<AssistantTab> {
     } finally {
       if (mounted) setState(() => sending = false);
       _scrollToBottom();
+    }
+  }
+
+  Future<void> _toggleVoiceInput() async {
+    if (sending || transcribingVoice) return;
+
+    if (Platform.isWindows) {
+      await _toggleWindowsVoiceInput();
+      return;
+    }
+
+    if (speechToText.isListening) {
+      await speechToText.stop();
+      if (mounted) setState(() => listening = false);
+      return;
+    }
+
+    if (!speechReady) {
+      final available = await speechToText.initialize(
+        onStatus: (_) {
+          if (mounted) setState(() => listening = speechToText.isListening);
+        },
+        onError: (error) {
+          if (!mounted) return;
+          setState(() => listening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Não foi possível usar o microfone: ${error.errorMsg}')),
+          );
+        },
+      );
+      if (!mounted) return;
+      speechReady = available;
+      if (!available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reconhecimento de voz indisponível ou sem permissão de microfone.')),
+        );
+        return;
+      }
+    }
+
+    voiceBaseText = messageController.text.trimRight();
+    await speechToText.listen(
+      onResult: (result) {
+        final spoken = result.recognizedWords.trim();
+        final prefix = voiceBaseText.isEmpty ? '' : '$voiceBaseText ';
+        final value = '$prefix$spoken'.trimRight();
+        messageController.value = TextEditingValue(
+          text: value,
+          selection: TextSelection.collapsed(offset: value.length),
+        );
+        if (mounted) setState(() => listening = speechToText.isListening);
+      },
+    );
+    if (mounted) setState(() => listening = speechToText.isListening);
+  }
+
+  Future<void> _toggleWindowsVoiceInput() async {
+    if (listening) {
+      String? path;
+      try {
+        path = await audioRecorder.stop();
+      } catch (_) {
+        if (mounted) setState(() => listening = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não consegui finalizar a gravação.')),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        listening = false;
+        transcribingVoice = true;
+      });
+
+      if (path == null || path.isEmpty) {
+        setState(() => transcribingVoice = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('A gravação ficou vazia.')),
+        );
+        return;
+      }
+
+      final file = File(path);
+      try {
+        final spoken = await widget.apiService.transcribeAudio(file);
+        final previous = messageController.text.trimRight();
+        final value = previous.isEmpty ? spoken : '$previous $spoken';
+        messageController.value = TextEditingValue(
+          text: value,
+          selection: TextSelection.collapsed(offset: value.length),
+        );
+      } on ApiException catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error.message)),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não consegui transcrever a gravação. Confira o backend.')),
+          );
+        }
+      } finally {
+        if (await file.exists()) {
+          try {
+            await file.delete();
+          } catch (_) {}
+        }
+        if (mounted) setState(() => transcribingVoice = false);
+      }
+      return;
+    }
+
+    try {
+      final temp = await getTemporaryDirectory();
+      final path = '${temp.path}${Platform.pathSeparator}agenda_voice_${DateTime.now().microsecondsSinceEpoch}.wav';
+      await audioRecorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+      if (mounted) setState(() => listening = true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => listening = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não consegui acessar o microfone do Windows. Verifique a permissão de microfone.'),
+          ),
+        );
+      }
     }
   }
 
@@ -301,7 +463,7 @@ class _AssistantTabState extends State<AssistantTab> {
                       onPressed: _showAvailablePdfs,
                       icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
                       label: Text(
-                        '${widget.store.materials.where((item) => item.remote).length} PDF(s) disponíveis nesta conversa',
+                        '${thread.selectedMaterialNames.where((name) => widget.store.materials.any((item) => item.remote && item.name == name)).length} PDF(s) vinculados a esta conversa',
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
@@ -366,6 +528,30 @@ class _AssistantTabState extends State<AssistantTab> {
                 SizedBox(
                   width: 52,
                   height: 52,
+                  child: IconButton.filledTonal(
+                    key: const Key('assistant-mic'),
+                    tooltip: transcribingVoice
+                        ? 'Transcrevendo...'
+                        : (listening ? 'Parar gravação' : 'Falar mensagem'),
+                    onPressed: (sending || transcribingVoice) ? null : _toggleVoiceInput,
+                    style: IconButton.styleFrom(
+                      backgroundColor: listening ? const Color(0xFFFFE4E4) : const Color(0xFFF0F0F0),
+                      foregroundColor: listening ? const Color(0xFFB42318) : const Color(0xFF3E3E3E),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: transcribingVoice
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(listening ? Icons.stop_circle_outlined : Icons.mic_none_rounded),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 52,
+                  height: 52,
                   child: FilledButton(
                     key: const Key('assistant-send'),
                     onPressed: sending ? null : _send,
@@ -386,42 +572,106 @@ class _AssistantTabState extends State<AssistantTab> {
   }
 
   Future<void> _showAvailablePdfs() async {
+    final thread = selectedThread;
     final materials = widget.store.materials.where((item) => item.remote).toList();
-    if (materials.isEmpty) return;
-    final selected = await showModalBottomSheet<String>(
+    if (thread == null || materials.isEmpty) return;
+
+    final availableNames = materials.map((item) => item.name).toSet();
+    final initial = thread.selectedMaterialNames.where(availableNames.contains).toSet();
+    final selected = await showModalBottomSheet<Set<String>>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-          children: [
-            const Text(
-              'PDFs disponíveis para a Gemini',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'A Gemini pode pesquisar nesses materiais dentro desta conversa.',
-              style: TextStyle(color: Color(0xFF6B6B6B)),
-            ),
-            const SizedBox(height: 12),
-            ...materials.map(
-              (item) => ListTile(
-                leading: const Icon(Icons.picture_as_pdf_outlined),
-                title: Text(item.displayName),
-                subtitle: item.category == 'Todos' ? null : Text(item.category),
-                onTap: () => Navigator.pop(context, item.displayName),
+      isScrollControlled: true,
+      builder: (context) {
+        final checked = Set<String>.from(initial);
+        return StatefulBuilder(
+          builder: (context, setSheetState) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'PDFs desta conversa',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'A Gemini pesquisará somente nos PDFs marcados. Alterar esta seleção reinicia o contexto interno da IA para evitar mistura entre materiais.',
+                    style: TextStyle(color: Color(0xFF6B6B6B)),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setSheetState(() {
+                          checked
+                            ..clear()
+                            ..addAll(availableNames);
+                        }),
+                        child: const Text('Selecionar todos'),
+                      ),
+                      TextButton(
+                        onPressed: () => setSheetState(checked.clear),
+                        child: const Text('Limpar'),
+                      ),
+                    ],
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 360),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: materials
+                          .map(
+                            (item) => CheckboxListTile(
+                              value: checked.contains(item.name),
+                              contentPadding: EdgeInsets.zero,
+                              secondary: const Icon(Icons.picture_as_pdf_outlined),
+                              title: Text(item.displayName),
+                              subtitle: item.category == 'Todos' ? null : Text(item.category),
+                              onChanged: (value) => setSheetState(() {
+                                if (value == true) {
+                                  checked.add(item.name);
+                                } else {
+                                  checked.remove(item.name);
+                                }
+                              }),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: const Key('assistant-save-pdfs'),
+                      onPressed: () => Navigator.pop(context, Set<String>.from(checked)),
+                      child: const Text('Usar estes PDFs'),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+    widget.store.updateThreadMaterials(thread.id, selected.toList());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          selected.isEmpty
+              ? 'Esta conversa não usará PDFs.'
+              : '${selected.length} PDF(s) vinculados. O contexto da Gemini foi reiniciado.',
         ),
       ),
     );
-    if (selected == null || !mounted) return;
-    final prefix = 'Sobre o PDF "$selected": ';
-    messageController.text = prefix;
-    messageController.selection = TextSelection.collapsed(offset: prefix.length);
   }
 
   void _createSuggestedEvent(AgendaEvent event) {

@@ -168,6 +168,7 @@ class AppStore extends ChangeNotifier {
       title: title,
       createdAt: now,
       updatedAt: now,
+      selectedMaterialNames: _materials.where((item) => item.remote).map((item) => item.name).toList(),
     );
     _threads.insert(0, thread);
     _messagesByThread[thread.id] = <ChatMessage>[];
@@ -222,6 +223,29 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateThreadMaterials(String threadId, List<String> materialNames) {
+    final index = _threads.indexWhere((thread) => thread.id == threadId);
+    if (index < 0) return;
+
+    final allowed = _materials.where((item) => item.remote).map((item) => item.name).toSet();
+    final unique = <String>[];
+    for (final name in materialNames) {
+      if (allowed.contains(name) && !unique.contains(name)) unique.add(name);
+    }
+
+    final updated = _threads[index].copyWith(
+      selectedMaterialNames: unique,
+      clearPreviousInteractionId: true,
+      updatedAt: DateTime.now(),
+    );
+    _threads[index] = updated;
+    final userId = _currentUser?.id;
+    if (_database != null && userId != null) {
+      _queueWrite(_database!.upsertThread(userId, updated));
+    }
+    notifyListeners();
+  }
+
   Future<void> clearMessages(String threadId) async {
     _messagesByThread[threadId]?.clear();
     updateThreadInteraction(threadId, null);
@@ -265,8 +289,21 @@ class AppStore extends ChangeNotifier {
 
   void removeMaterial(String name) {
     _materials.removeWhere((item) => item.name == name);
-    notifyListeners();
     final userId = _currentUser?.id;
+    for (var index = 0; index < _threads.length; index += 1) {
+      final thread = _threads[index];
+      if (!thread.selectedMaterialNames.contains(name)) continue;
+      final updated = thread.copyWith(
+        selectedMaterialNames: thread.selectedMaterialNames.where((item) => item != name).toList(),
+        clearPreviousInteractionId: true,
+        updatedAt: DateTime.now(),
+      );
+      _threads[index] = updated;
+      if (_database != null && userId != null) {
+        _queueWrite(_database!.upsertThread(userId, updated));
+      }
+    }
+    notifyListeners();
     if (_database != null && userId != null) {
       _queueWrite(_database!.deleteMaterial(userId, name));
     }

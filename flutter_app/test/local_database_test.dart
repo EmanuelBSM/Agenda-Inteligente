@@ -33,6 +33,19 @@ void main() {
     await expectLater(auth.login(email: 'aluno@teste.com', password: 'errada'), throwsA(isA<AuthException>()));
   });
 
+  test('redefine senha local e invalida a senha anterior', () async {
+    await auth.register(name: 'Recuperação', email: 'recupera@teste.com', password: '123456');
+
+    await auth.resetPassword(email: 'RECUPERA@TESTE.COM', newPassword: 'nova123');
+
+    await expectLater(
+      auth.login(email: 'recupera@teste.com', password: '123456'),
+      throwsA(isA<AuthException>()),
+    );
+    final logged = await auth.login(email: 'recupera@teste.com', password: 'nova123');
+    expect(logged.email, 'recupera@teste.com');
+  });
+
   test('novo usuário começa sem dados de demonstração', () async {
     final user = await auth.register(name: 'Vazio', email: 'vazio@teste.com', password: '123456');
     final store = AppStore.local(database);
@@ -102,6 +115,27 @@ void main() {
 
     expect((await database.loadMessages(user.id, a.id)).single.text, 'Equação');
     expect((await database.loadMessages(user.id, b.id)).single.text, 'Guerra Fria');
+  });
+
+  test('cada conversa persiste sua própria seleção de PDFs', () async {
+    final user = await auth.register(name: 'PDFs', email: 'pdfs@teste.com', password: '123456');
+    final store = AppStore.local(database);
+    await store.loadForUser(user);
+    store.addMaterial(
+      const MaterialItem(name: 'files/a', displayName: 'A.pdf', mimeType: 'application/pdf', remote: true),
+    );
+    store.addMaterial(
+      const MaterialItem(name: 'files/b', displayName: 'B.pdf', mimeType: 'application/pdf', remote: true),
+    );
+
+    final thread = store.createThread(title: 'Estudo');
+    expect(thread.selectedMaterialNames, containsAll(['files/a', 'files/b']));
+    store.updateThreadMaterials(thread.id, ['files/b']);
+    await store.flush();
+
+    final reloaded = AppStore.local(database);
+    await reloaded.loadForUser(user);
+    expect(reloaded.threadById(thread.id)!.selectedMaterialNames, ['files/b']);
   });
 
   test('plano de estudo sugerido permanece salvo no histórico da conversa', () async {

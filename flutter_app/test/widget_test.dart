@@ -16,6 +16,11 @@ class FakeAuthService implements AuthService {
   Future<UserAccount> register({required String name, required String email, required String password}) async {
     return UserAccount(id: 1, name: name, email: email);
   }
+
+  @override
+  Future<void> resetPassword({required String email, required String newPassword}) async {
+    if (email.isEmpty || newPassword.length < 6) throw const AuthException('Dados inválidos.');
+  }
 }
 
 Future<void> pumpAuthApp(WidgetTester tester, AppStore store) async {
@@ -77,6 +82,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('redefinição de senha local abre dialogo e conclui', (tester) async {
+    final store = AppStore.empty();
+    await pumpAuthApp(tester, store);
+
+    await tester.enterText(find.byKey(const Key('login-email')), 'teste@agenda.local');
+    await tester.tap(find.byKey(const Key('login-reset-password')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Redefinir senha'), findsWidgets);
+    await tester.enterText(find.byKey(const Key('reset-password')), '654321');
+    await tester.enterText(find.byKey(const Key('reset-confirm-password')), '654321');
+    await tester.tap(find.byKey(const Key('reset-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Senha redefinida. Entre com a nova senha.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Gemini abre lista de conversas separadas', (tester) async {
     final store = AppStore.empty();
     await login(tester, store);
@@ -89,5 +112,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nova conversa'), findsOneWidget);
     expect(find.byKey(const Key('assistant-input')), findsOneWidget);
+    expect(find.byKey(const Key('assistant-mic')), findsOneWidget);
   });
 }

@@ -34,7 +34,7 @@ class LocalDatabase {
     final path = inMemory ? sqflite.inMemoryDatabasePath : await _databasePath();
     _database = await sqflite.openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
@@ -43,6 +43,7 @@ class LocalDatabase {
         if (oldVersion < 2) await _upgradeToV2(database);
         if (oldVersion < 3) await _upgradeToV3(database);
         if (oldVersion < 4) await _upgradeToV4(database);
+        if (oldVersion < 5) await _upgradeToV5(database);
       },
     );
   }
@@ -106,6 +107,7 @@ class LocalDatabase {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         previous_interaction_id TEXT,
+        selected_material_names_json TEXT NOT NULL DEFAULT '[]',
         FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     ''');
@@ -151,6 +153,7 @@ class LocalDatabase {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         previous_interaction_id TEXT,
+        selected_material_names_json TEXT NOT NULL DEFAULT '[]',
         FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     ''');
@@ -216,6 +219,16 @@ class LocalDatabase {
     final messageNames = messageColumns.map((row) => row['name']?.toString()).toSet();
     if (!messageNames.contains('study_blocks_json')) {
       await database.execute('ALTER TABLE chat_messages ADD COLUMN study_blocks_json TEXT');
+    }
+  }
+
+  Future<void> _upgradeToV5(sqflite.Database database) async {
+    final threadColumns = await database.rawQuery('PRAGMA table_info(chat_threads)');
+    final threadNames = threadColumns.map((row) => row['name']?.toString()).toSet();
+    if (!threadNames.contains('selected_material_names_json')) {
+      await database.execute(
+        "ALTER TABLE chat_threads ADD COLUMN selected_material_names_json TEXT NOT NULL DEFAULT '[]'",
+      );
     }
   }
 

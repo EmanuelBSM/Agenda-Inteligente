@@ -10,6 +10,7 @@ import 'local_database.dart';
 abstract class AuthService {
   Future<UserAccount> login({required String email, required String password});
   Future<UserAccount> register({required String name, required String email, required String password});
+  Future<void> resetPassword({required String email, required String newPassword});
 }
 
 class LocalAuthService implements AuthService {
@@ -67,6 +68,40 @@ class LocalAuthService implements AuthService {
       id: row['id'] as int,
       name: row['name'] as String,
       email: row['email'] as String,
+    );
+  }
+
+  @override
+  Future<void> resetPassword({required String email, required String newPassword}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) {
+      throw const AuthException('Informe o e-mail da conta.');
+    }
+    if (newPassword.length < 6) {
+      throw const AuthException('A nova senha deve ter pelo menos 6 caracteres.');
+    }
+
+    final rows = await database.db.query(
+      'users',
+      columns: ['id'],
+      where: 'email = ? COLLATE NOCASE',
+      whereArgs: [normalizedEmail],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      throw const AuthException('Nenhuma conta local foi encontrada com este e-mail.');
+    }
+
+    final salt = _newSalt();
+    final hash = _hash(newPassword, salt);
+    await database.db.update(
+      'users',
+      {
+        'password_hash': hash,
+        'salt': salt,
+      },
+      where: 'id = ?',
+      whereArgs: [rows.first['id']],
     );
   }
 

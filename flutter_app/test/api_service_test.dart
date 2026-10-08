@@ -89,6 +89,7 @@ void main() {
 
     final materials = sentBody['materials'] as List<dynamic>;
     expect(materials, hasLength(1));
+    expect((materials.first as Map<String, dynamic>)['name'], 'files/pdf-1');
     expect((materials.first as Map<String, dynamic>)['displayName'], 'Genética.pdf');
     expect((materials.first as Map<String, dynamic>)['category'], 'Biologia');
   });

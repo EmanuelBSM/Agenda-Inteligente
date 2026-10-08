@@ -21,6 +21,7 @@ export function loadEnvFile(filePath) {
 export function createRequestHandler(config = {}) {
   const apiKey = config.apiKey ?? process.env.GEMINI_API_KEY ?? '';
   const model = config.model ?? process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite';
+  const audioModel = config.audioModel ?? process.env.GEMINI_AUDIO_MODEL ?? model;
   const embeddingModel = config.embeddingModel ?? process.env.GEMINI_EMBEDDING_MODEL ?? 'models/gemini-embedding-2';
   const fetchImpl = config.fetchImpl ?? globalThis.fetch;
   let cachedFileSearchStore = null;
@@ -97,6 +98,58 @@ export function createRequestHandler(config = {}) {
       }
     }
     return {store, operation};
+  };
+
+  const handleTranscribeAudio = async (req, res) => {
+    const body = await readJson(req, 16 * 1024 * 1024);
+    const audioBase64 = String(body.audioBase64 ?? '').trim();
+    const mimeType = String(body.mimeType ?? 'audio/wav').trim().toLowerCase();
+
+    if (!audioBase64) {
+      return sendJson(res, 400, {error: 'Envie uma gravação de voz.'});
+    }
+
+    const allowedMimeTypes = new Set([
+      'audio/wav',
+      'audio/x-wav',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/aac',
+      'audio/ogg',
+      'audio/flac',
+    ]);
+    if (!allowedMimeTypes.has(mimeType)) {
+      return sendJson(res, 400, {error: 'Formato de áudio não suportado.'});
+    }
+
+    const estimatedBytes = Math.floor((audioBase64.length * 3) / 4);
+    if (estimatedBytes > 10 * 1024 * 1024) {
+      return sendJson(res, 413, {error: 'A gravação deve ter no máximo 10 MB.'});
+    }
+
+    const {data} = await geminiFetch('/v1beta/interactions', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: audioModel,
+        input: [
+          {
+            type: 'text',
+            text: 'Transcreva somente a fala deste áudio em português do Brasil. Retorne apenas o texto falado, sem aspas, comentários ou explicações.',
+          },
+          {
+            type: 'audio',
+            data: audioBase64,
+            mime_type: mimeType,
+          },
+        ],
+      }),
+    });
+
+    const text = extractInteractionText(data).trim();
+    if (!text) {
+      return sendJson(res, 422, {error: 'Não foi possível entender a gravação.'});
+    }
+    return sendJson(res, 200, {text});
   };
 
   const handleAssistant = async (req, res) => {
@@ -386,6 +439,7 @@ export function createRequestHandler(config = {}) {
         });
       }
       if (req.method === 'POST' && pathname === '/api/gemini/assistant') return await handleAssistant(req, res);
+      if (req.method === 'POST' && pathname === '/api/gemini/transcribe-audio') return await handleTranscribeAudio(req, res);
       if (req.method === 'GET' && pathname === '/api/materials') return await handleListMaterials(req, res);
       if (req.method === 'POST' && pathname === '/api/materials/upload') return await handleUploadMaterial(req, res);
       if (req.method === 'POST' && pathname === '/api/materials/summary') return await handleSummary(req, res);

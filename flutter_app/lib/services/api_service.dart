@@ -173,6 +173,31 @@ class ApiService {
     );
   }
 
+  Future<String> transcribeAudio(File file, {String mimeType = 'audio/wav'}) async {
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      throw const ApiException('A gravação de voz ficou vazia.');
+    }
+
+    final response = await _client
+        .post(
+          _uri('/api/gemini/transcribe-audio'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'audioBase64': base64Encode(bytes),
+            'mimeType': mimeType,
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
+
+    final data = _json(response);
+    final text = '${data['text'] ?? ''}'.trim();
+    if (text.isEmpty) {
+      throw const ApiException('Não consegui entender a gravação. Tente falar novamente.');
+    }
+    return text;
+  }
+
   TaskPriority _taskPriority(String value) {
     switch (value.toLowerCase()) {
       case 'alta':

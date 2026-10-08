@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Usamos o microfone para transformar sua fala em mensagens para a Gemini.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Usamos reconhecimento de voz para transcrever mensagens do chat.</string>
 </dict>
 </plist>
