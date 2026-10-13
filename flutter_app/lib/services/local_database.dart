@@ -10,6 +10,7 @@ import '../models/agenda_task.dart';
 import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
 import '../models/material_item.dart';
+import '../models/user_account.dart';
 
 class LocalDatabase {
   LocalDatabase({this.inMemory = false});
@@ -34,7 +35,7 @@ class LocalDatabase {
     final path = inMemory ? sqflite.inMemoryDatabasePath : await _databasePath();
     _database = await sqflite.openDatabase(
       path,
-      version: 5,
+      version: 6,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
@@ -44,6 +45,7 @@ class LocalDatabase {
         if (oldVersion < 3) await _upgradeToV3(database);
         if (oldVersion < 4) await _upgradeToV4(database);
         if (oldVersion < 5) await _upgradeToV5(database);
+        if (oldVersion < 6) await _upgradeToV6(database);
       },
     );
   }
@@ -57,6 +59,13 @@ class LocalDatabase {
         password_hash TEXT NOT NULL,
         salt TEXT NOT NULL,
         created_at TEXT NOT NULL
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE app_session (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     ''');
     await database.execute('''
@@ -232,6 +241,16 @@ class LocalDatabase {
     }
   }
 
+  Future<void> _upgradeToV6(sqflite.Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS app_session (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
   Future<void> _createIndexes(sqflite.Database database) async {
     await database.execute('CREATE INDEX IF NOT EXISTS idx_events_user_start ON events(user_id, start)');
     await database.execute('CREATE INDEX IF NOT EXISTS idx_tasks_user_deadline ON tasks(user_id, deadline)');
@@ -251,6 +270,43 @@ class LocalDatabase {
   Future<void> close() async {
     await _database?.close();
     _database = null;
+  }
+
+  Future<void> saveSession(int userId) async {
+    await db.insert(
+      'app_session',
+      {'id': 1, 'user_id': userId},
+      conflictAlgorithm: sqflite.ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int?> loadSessionUserId() async {
+    final rows = await db.query('app_session', where: 'id = ?', whereArgs: [1], limit: 1);
+    if (rows.isEmpty) return null;
+    final value = rows.first['user_id'];
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  Future<void> clearSession() async {
+    await db.delete('app_session', where: 'id = ?', whereArgs: [1]);
+  }
+
+  Future<UserAccount?> loadUserById(int userId) async {
+    final rows = await db.query(
+      'users',
+      columns: ['id', 'name', 'email'],
+      where: 'id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    return UserAccount(
+      id: row['id'] as int,
+      name: row['name'] as String,
+      email: row['email'] as String,
+    );
   }
 
   Future<List<AgendaEvent>> loadEvents(int userId) async {

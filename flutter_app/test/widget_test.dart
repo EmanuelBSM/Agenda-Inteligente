@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:agenda_inteligente_gemini/models/user_account.dart';
 import 'package:agenda_inteligente_gemini/screens/auth_gate.dart';
+import 'package:agenda_inteligente_gemini/screens/calendar_tab.dart';
+import 'package:agenda_inteligente_gemini/screens/tasks_tab.dart';
 import 'package:agenda_inteligente_gemini/services/local_auth_service.dart';
 import 'package:agenda_inteligente_gemini/state/app_store.dart';
 
@@ -75,7 +77,7 @@ void main() {
 
     // HomeTab expõe o logout no botão de sino/menu conforme a implementação atual;
     // aqui validamos diretamente o gate para evitar acoplamento visual.
-    store.clearUser();
+    await store.clearUser();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('login-enter')), findsOneWidget);
@@ -97,6 +99,72 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Senha redefinida. Entre com a nova senha.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('criar conta mantém conteúdo rolável no diálogo mobile', (tester) async {
+    final store = AppStore.empty();
+    await pumpAuthApp(tester, store);
+    await tester.tap(find.byKey(const Key('login-register')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Criar conta'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.byType(SingleChildScrollView)),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('redefinir senha mantém conteúdo rolável no diálogo mobile', (tester) async {
+    final store = AppStore.empty();
+    await pumpAuthApp(tester, store);
+    await tester.tap(find.byKey(const Key('login-reset-password')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Redefinir senha'), findsWidgets);
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.byType(SingleChildScrollView)),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('modal de nova tarefa respeita SafeArea e permite rolagem', (tester) async {
+    final store = AppStore.empty();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: TasksTab(store: store))));
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nova tarefa'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(SafeArea)),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(SingleChildScrollView)),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('modal de novo evento respeita SafeArea e permite rolagem', (tester) async {
+    final store = AppStore.empty();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: CalendarTab(store: store))));
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Novo evento'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(SafeArea)),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(SingleChildScrollView)),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

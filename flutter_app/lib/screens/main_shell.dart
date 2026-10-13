@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -29,7 +31,7 @@ class _MainShellState extends State<MainShell> {
   void _logout() {
     // O AuthGate em main.dart detecta currentUser == null e volta ao login.
     // Não manipulamos a pilha do Navigator durante o logout.
-    widget.store.clearUser();
+    unawaited(widget.store.clearUser());
   }
 
   @override

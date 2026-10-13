@@ -584,11 +584,14 @@ class _AssistantTabState extends State<AssistantTab> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) {
         final checked = Set<String>.from(initial);
         return StatefulBuilder(
           builder: (context, setSheetState) => SafeArea(
-            child: Padding(
+            top: true,
+            bottom: true,
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -623,7 +626,7 @@ class _AssistantTabState extends State<AssistantTab> {
                     ],
                   ),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 360),
+                    constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.38),
                     child: ListView(
                       shrinkWrap: true,
                       children: materials

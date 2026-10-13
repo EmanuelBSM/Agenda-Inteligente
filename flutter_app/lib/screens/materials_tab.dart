@@ -299,10 +299,11 @@ class _MaterialsTabState extends State<MaterialsTab> {
     final question = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         title: const Text('Perguntar ao material'),
         content: TextField(
           controller: controller,
-          autofocus: true,
           minLines: 2,
           maxLines: 4,
           decoration: const InputDecoration(hintText: 'Ex.: Explique os conceitos principais.'),

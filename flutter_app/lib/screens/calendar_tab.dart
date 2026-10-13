@@ -104,7 +104,11 @@ class _CalendarTabState extends State<CalendarTab> {
                     else
                       ...events.map((event) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
-                            child: _EventCard(event: event),
+                            child: _EventCard(
+                              event: event,
+                              onEdit: () => _showEventForm(existing: event),
+                              onDelete: () => _confirmDeleteEvent(event),
+                            ),
                           )),
                   ],
                 ),
@@ -127,111 +131,243 @@ class _CalendarTabState extends State<CalendarTab> {
     );
   }
 
-  Future<void> _showAddEvent() async {
-    final titleController = TextEditingController();
-    final locationController = TextEditingController();
-    TimeOfDay startTime = const TimeOfDay(hour: 14, minute: 0);
-    TimeOfDay endTime = const TimeOfDay(hour: 15, minute: 0);
+  Future<void> _showAddEvent() => _showEventForm();
 
-    final created = await showModalBottomSheet<AgendaEvent>(
+  Future<void> _showEventForm({AgendaEvent? existing}) async {
+    final initialDate = existing?.start ?? selectedDate;
+    final result = await showModalBottomSheet<AgendaEvent>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Novo evento', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 18),
-                  TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Título')),
-                  const SizedBox(height: 12),
-                  TextField(controller: locationController, decoration: const InputDecoration(labelText: 'Local (opcional)')),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final value = await showTimePicker(context: context, initialTime: startTime);
-                            if (value != null) setModalState(() => startTime = value);
-                          },
-                          icon: const Icon(Icons.schedule_rounded),
-                          label: Text('Início ${startTime.format(context)}'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final value = await showTimePicker(context: context, initialTime: endTime);
-                            if (value != null) setModalState(() => endTime = value);
-                          },
-                          icon: const Icon(Icons.schedule_rounded),
-                          label: Text('Fim ${endTime.format(context)}'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: () {
-                        final title = titleController.text.trim();
-                        if (title.isEmpty) return;
-                        final start = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, startTime.hour, startTime.minute);
-                        final end = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, endTime.hour, endTime.minute);
-                        if (!end.isAfter(start)) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('O horário final deve ser depois do início.')));
-                          return;
-                        }
-                        Navigator.pop(
-                          context,
-                          AgendaEvent(
-                            id: 'manual-${DateTime.now().microsecondsSinceEpoch}',
-                            title: title,
-                            start: start,
-                            end: end,
-                            location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
-                          ),
-                        );
-                      },
-                      child: const Text('Criar evento'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => _EventFormSheet(initialDate: initialDate, initialEvent: existing),
     );
 
-    titleController.dispose();
-    locationController.dispose();
+    if (result == null || !mounted) return;
 
-    if (created == null || !mounted) return;
-    if (widget.store.hasConflict(created)) {
-      final confirm = await showDialog<bool>(
+    if (widget.store.hasConflict(result)) {
+      final confirmed = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
+          scrollable: true,
           title: const Text('Conflito de horário'),
-          content: const Text('Já existe um compromisso nesse horário. Deseja criar mesmo assim?'),
+          content: const Text('Já existe um compromisso nesse horário. Deseja salvar mesmo assim?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Criar mesmo assim')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Salvar mesmo assim'),
+            ),
           ],
         ),
       );
-      if (confirm != true) return;
+      if (confirmed != true || !mounted) return;
     }
-    widget.store.addEvent(created);
+
+    if (existing == null) {
+      widget.store.addEvent(result);
+    } else {
+      widget.store.updateEvent(result);
+    }
+
+    setState(() {
+      selectedDate = DateTime(result.start.year, result.start.month, result.start.day);
+      visibleMonth = DateTime(result.start.year, result.start.month, 1);
+    });
+  }
+
+  Future<void> _confirmDeleteEvent(AgendaEvent event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        title: const Text('Excluir evento?'),
+        content: Text('O evento "${event.title}" será removido permanentemente.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+          FilledButton(
+            key: const Key('confirm-delete-event'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) widget.store.removeEvent(event.id);
+  }
+}
+
+class _EventFormSheet extends StatefulWidget {
+  const _EventFormSheet({required this.initialDate, this.initialEvent});
+
+  final DateTime initialDate;
+  final AgendaEvent? initialEvent;
+
+  @override
+  State<_EventFormSheet> createState() => _EventFormSheetState();
+}
+
+class _EventFormSheetState extends State<_EventFormSheet> {
+  late final TextEditingController titleController;
+  late final TextEditingController locationController;
+  late final TextEditingController descriptionController;
+  late DateTime eventDate;
+  late TimeOfDay startTime;
+  late TimeOfDay endTime;
+
+  @override
+  void initState() {
+    super.initState();
+    final event = widget.initialEvent;
+    titleController = TextEditingController(text: event?.title ?? '');
+    locationController = TextEditingController(text: event?.location ?? '');
+    descriptionController = TextEditingController(text: event?.description ?? '');
+    final date = event?.start ?? widget.initialDate;
+    eventDate = DateTime(date.year, date.month, date.day);
+    startTime = event == null ? const TimeOfDay(hour: 14, minute: 0) : TimeOfDay.fromDateTime(event.start);
+    endTime = event == null ? const TimeOfDay(hour: 15, minute: 0) : TimeOfDay.fromDateTime(event.end);
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    locationController.dispose();
+    descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+      initialDate: eventDate.isBefore(DateTime(1900)) ? DateTime(1900) : eventDate,
+    );
+    if (!mounted || value == null) return;
+    setState(() => eventDate = DateTime(value.year, value.month, value.day));
+  }
+
+  Future<void> _pickStartTime() async {
+    final value = await showTimePicker(context: context, initialTime: startTime);
+    if (!mounted || value == null) return;
+    setState(() => startTime = value);
+  }
+
+  Future<void> _pickEndTime() async {
+    final value = await showTimePicker(context: context, initialTime: endTime);
+    if (!mounted || value == null) return;
+    setState(() => endTime = value);
+  }
+
+  void _saveEvent() {
+    final title = titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Informe o título do evento.')));
+      return;
+    }
+
+    final start = DateTime(eventDate.year, eventDate.month, eventDate.day, startTime.hour, startTime.minute);
+    final end = DateTime(eventDate.year, eventDate.month, eventDate.day, endTime.hour, endTime.minute);
+    if (!end.isAfter(start)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('O horário final deve ser depois do início.')));
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    final existing = widget.initialEvent;
+    final location = locationController.text.trim();
+    final description = descriptionController.text.trim();
+    Navigator.of(context).pop(
+      AgendaEvent(
+        id: existing?.id ?? 'manual-${DateTime.now().microsecondsSinceEpoch}',
+        title: title,
+        start: start,
+        end: end,
+        location: location.isEmpty ? null : location,
+        description: description.isEmpty ? null : description,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final editing = widget.initialEvent != null;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return SafeArea(
+      top: true,
+      bottom: true,
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(20, 20, 20, keyboardInset + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(editing ? 'Editar evento' : 'Novo evento', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 18),
+            TextField(
+              key: const Key('event-title-input'),
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Título'),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(labelText: 'Local (opcional)'),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Descrição (opcional)'),
+              minLines: 1,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('event-date-input'),
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_month_rounded),
+                label: Text('Data: ${formatShortDate(eventDate)}'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickStartTime,
+                    icon: const Icon(Icons.schedule_rounded),
+                    label: Text('Início ${startTime.format(context)}'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickEndTime,
+                    icon: const Icon(Icons.schedule_rounded),
+                    label: Text('Fim ${endTime.format(context)}'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                key: const Key('event-save'),
+                onPressed: _saveEvent,
+                child: Text(editing ? 'Salvar alterações' : 'Criar evento'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -242,7 +378,7 @@ class _WeekdayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     return Row(
-      children: days.map((day) => Expanded(child: Center(child: Text(day, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))))).toList(),
+      children: days.map((day) => Expanded(child: Center(child: Text(day, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink))))).toList(),
     );
   }
 }
@@ -297,9 +433,11 @@ class _MonthGrid extends StatelessWidget {
 }
 
 class _EventCard extends StatelessWidget {
-  const _EventCard({required this.event});
+  const _EventCard({required this.event, required this.onEdit, required this.onDelete});
 
   final AgendaEvent event;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -311,8 +449,12 @@ class _EventCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.circle, size: 13, color: AppColors.primary),
+          const Padding(
+            padding: EdgeInsets.only(top: 5),
+            child: Icon(Icons.circle, size: 13, color: AppColors.primary),
+          ),
           const SizedBox(width: 13),
           SizedBox(
             width: 64,
@@ -324,15 +466,34 @@ class _EventCard extends StatelessWidget {
               ],
             ),
           ),
-          const VerticalDivider(width: 20),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 54, color: AppColors.border),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(event.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.ink)),
                 if (event.location != null) Text(event.location!, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
+                if (event.description != null && event.description!.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(event.description!, style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                  ),
               ],
             ),
+          ),
+          PopupMenuButton<String>(
+            key: Key('event-actions-${event.id}'),
+            tooltip: 'Ações do evento',
+            onSelected: (value) {
+              if (value == 'edit') onEdit();
+              if (value == 'delete') onDelete();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'edit', child: Text('Editar')),
+              PopupMenuItem(value: 'delete', child: Text('Excluir')),
+            ],
           ),
         ],
       ),

@@ -272,6 +272,8 @@ class _RegisterDialogState extends State<_RegisterDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       title: const Text('Criar conta'),
       content: Form(
         key: formKey,
@@ -283,7 +285,6 @@ class _RegisterDialogState extends State<_RegisterDialog> {
               TextFormField(
                 key: const Key('register-name'),
                 controller: nameController,
-                autofocus: true,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'Nome'),
                 validator: (value) => (value ?? '').trim().length < 2 ? 'Informe seu nome.' : null,
@@ -377,6 +378,8 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       title: const Text('Redefinir senha'),
       content: Form(
         key: formKey,

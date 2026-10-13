@@ -49,6 +49,7 @@ class AppStore extends ChangeNotifier {
   final Set<Future<void>> _pendingWrites = <Future<void>>{};
 
   UserAccount? get currentUser => _currentUser;
+  bool get hasLocalDatabase => _database != null;
   List<AgendaEvent> get events => List.unmodifiable(_events);
   List<AgendaTask> get tasks => List.unmodifiable(_tasks);
   List<MaterialItem> get materials => List.unmodifiable(_materials);
@@ -73,6 +74,9 @@ class AppStore extends ChangeNotifier {
       return;
     }
 
+    // A sessão guarda somente o ID local do usuário, nunca a senha.
+    await database.saveSession(user.id);
+
     _events
       ..clear()
       ..addAll(await database.loadEvents(user.id));
@@ -92,7 +96,28 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearUser() {
+  Future<void> restoreSession() async {
+    final database = _database;
+    if (database == null) return;
+
+    final userId = await database.loadSessionUserId();
+    if (userId == null) return;
+
+    final user = await database.loadUserById(userId);
+    if (user == null) {
+      await database.clearSession();
+      return;
+    }
+
+    await loadForUser(user);
+  }
+
+  Future<void> clearUser() async {
+    final database = _database;
+    // Remove a sessão do banco antes de mostrar a tela de login para evitar
+    // que um login imediato seja apagado por uma gravação atrasada do logout.
+    if (database != null) await database.clearSession();
+
     _currentUser = null;
     _events.clear();
     _tasks.clear();
@@ -117,6 +142,17 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  void updateEvent(AgendaEvent event) {
+    final index = _events.indexWhere((existing) => existing.id == event.id);
+    if (index < 0) return;
+    _events[index] = event;
+    notifyListeners();
+    final userId = _currentUser?.id;
+    if (_database != null && userId != null) {
+      _queueWrite(_database!.upsertEvent(userId, event));
+    }
+  }
+
   void removeEvent(String id) {
     _events.removeWhere((event) => event.id == id);
     notifyListeners();
@@ -134,6 +170,17 @@ class AppStore extends ChangeNotifier {
 
   void addTask(AgendaTask task) {
     _tasks.add(task);
+    notifyListeners();
+    final userId = _currentUser?.id;
+    if (_database != null && userId != null) {
+      _queueWrite(_database!.upsertTask(userId, task));
+    }
+  }
+
+  void updateTask(AgendaTask task) {
+    final index = _tasks.indexWhere((existing) => existing.id == task.id);
+    if (index < 0) return;
+    _tasks[index] = task;
     notifyListeners();
     final userId = _currentUser?.id;
     if (_database != null && userId != null) {

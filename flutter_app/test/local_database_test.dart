@@ -103,6 +103,60 @@ void main() {
     expect(reloaded.messagesForThread(thread.id).single.text, 'Olá');
   });
 
+  test('edição e exclusão de eventos e tarefas são persistidas no SQLite', () async {
+    final user = await auth.register(name: 'CRUD', email: 'crud@teste.com', password: '123456');
+    final store = AppStore.local(database);
+    await store.loadForUser(user);
+
+    final event = AgendaEvent(
+      id: 'evento-crud-db',
+      title: 'Evento original',
+      start: DateTime(2026, 10, 20, 9),
+      end: DateTime(2026, 10, 20, 10),
+    );
+    final task = AgendaTask(
+      id: 'tarefa-crud-db',
+      title: 'Tarefa original',
+      deadline: DateTime(2026, 10, 21, 18),
+      deadlineHasTime: true,
+      priority: TaskPriority.media,
+    );
+
+    store.addEvent(event);
+    store.addTask(task);
+    await store.flush();
+
+    store.updateEvent(event.copyWith(
+      title: 'Evento editado',
+      start: DateTime(2026, 10, 22, 11),
+      end: DateTime(2026, 10, 22, 12),
+    ));
+    store.updateTask(task.copyWith(
+      title: 'Tarefa editada',
+      deadline: DateTime(2026, 10, 23, 19),
+      deadlineHasTime: true,
+      priority: TaskPriority.alta,
+    ));
+    await store.flush();
+
+    final edited = AppStore.local(database);
+    await edited.loadForUser(user);
+    expect(edited.events.single.title, 'Evento editado');
+    expect(edited.events.single.start, DateTime(2026, 10, 22, 11));
+    expect(edited.tasks.single.title, 'Tarefa editada');
+    expect(edited.tasks.single.deadline, DateTime(2026, 10, 23, 19));
+    expect(edited.tasks.single.priority, TaskPriority.alta);
+
+    edited.removeEvent('evento-crud-db');
+    edited.removeTask('tarefa-crud-db');
+    await edited.flush();
+
+    final afterDelete = AppStore.local(database);
+    await afterDelete.loadForUser(user);
+    expect(afterDelete.events, isEmpty);
+    expect(afterDelete.tasks, isEmpty);
+  });
+
   test('duas conversas persistem sem misturar mensagens', () async {
     final user = await auth.register(name: 'Chats', email: 'chats@teste.com', password: '123456');
     final store = AppStore.local(database);
@@ -171,6 +225,40 @@ void main() {
     expect(loaded.single.suggestedStudyBlocks, hasLength(2));
     expect(loaded.single.suggestedStudyBlocks.first.start, DateTime(2026, 10, 6, 18));
     expect(loaded.single.suggestedStudyBlocks.last.end, DateTime(2026, 10, 8, 20, 30));
+  });
+
+  test('a sessão local é restaurada ao recriar o AppStore', () async {
+    final user = await auth.register(name: 'Sessão', email: 'sessao@teste.com', password: '123456');
+    final original = AppStore.local(database);
+    await original.loadForUser(user);
+    original.addTask(AgendaTask(
+      id: 'sessao-task',
+      title: 'Tarefa persistente',
+      deadline: DateTime(2026, 10, 13, 18),
+      deadlineHasTime: true,
+      priority: TaskPriority.media,
+    ));
+    await original.flush();
+
+    final restartedStore = AppStore.local(database);
+    await restartedStore.restoreSession();
+
+    expect(restartedStore.currentUser?.id, user.id);
+    expect(restartedStore.tasks.single.title, 'Tarefa persistente');
+  });
+
+  test('logout apaga a sessão e impede login automático no próximo início', () async {
+    final user = await auth.register(name: 'Logout', email: 'logout@teste.com', password: '123456');
+    final store = AppStore.local(database);
+    await store.loadForUser(user);
+
+    await store.clearUser();
+    final restartedStore = AppStore.local(database);
+    await restartedStore.restoreSession();
+
+    expect(store.currentUser, isNull);
+    expect(restartedStore.currentUser, isNull);
+    expect(await database.loadSessionUserId(), isNull);
   });
 
   test('dados ficam separados por usuário', () async {
