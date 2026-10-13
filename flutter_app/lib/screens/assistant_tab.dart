@@ -179,7 +179,21 @@ class _AssistantTabState extends State<AssistantTab> {
     }
 
     voiceBaseText = messageController.text.trimRight();
+
+    String? targetLocaleId;
+    try {
+      final locales = await speechToText.locales();
+      final ptLocale = locales.cast<stt.LocaleName?>().firstWhere(
+        (l) => l != null && l.localeId.toLowerCase().replaceAll('-', '_').startsWith('pt'),
+        orElse: () => null,
+      );
+      targetLocaleId = ptLocale?.localeId ?? 'pt_BR';
+    } catch (_) {
+      targetLocaleId = 'pt_BR';
+    }
+
     await speechToText.listen(
+      listenOptions: stt.SpeechListenOptions(localeId: targetLocaleId),
       onResult: (result) {
         final spoken = result.recognizedWords.trim();
         final prefix = voiceBaseText.isEmpty ? '' : '$voiceBaseText ';
