@@ -1,30 +1,22 @@
-# Agenda Inteligente com Gemini
+# Sobre a Agenda Inteligente com Gemini
 
-Esta versão já possui as principais funcionalidades, mas está sem banco de dados.
+A Agenda Inteligente com Gemini é um aplicativo desenvolvido em Flutter, com backend em Node.js e integração com a API Google Gemini, voltado à organização da rotina acadêmica.
+O sistema permite gerenciar eventos e tarefas, visualizar compromissos no calendário, identificar conflitos de horários e utilizar inteligência artificial para criar sugestões e organizar planos de estudo em blocos. Também oferece suporte a arquivos PDF, permitindo gerar resumos e fazer perguntas sobre os materiais em conversas individuais com a IA.
+Os dados são armazenados localmente em SQLite, com sistema de cadastro, login e persistência da sessão do usuário.
 
-## O que falta fazer
+## Funcionalidades
 
-- Login e cadastro ✓
-- Contas de usuário ✓
-- Persistência de eventos ✓
-- Persistência de tarefas ✓
-- Persistência de conversas ✓
-- Fazer e Testar versão mobile ✓
-
-
-## O que já possui
-
-- Tela inicial
-- Calendário
-- Criação e exclusão de eventos
-- Tarefas com data, horário e prioridade
-- Chat com Gemini
-- Conversas separadas durante a sessão
-- Sugestão de eventos e tarefas pela IA
-- Plano de estudos em blocos
-- Upload de PDF
-- Resumo de PDF
-- Perguntas sobre PDF
+- Autenticação: cadastro, login, redefinição local de senha e persistência da sessão do usuário.
+- Agenda e calendário: criação, edição e exclusão de eventos, com verificação de conflitos de horários.
+- Gerenciamento de tarefas: criação, edição e exclusão de tarefas, com data, horário, prioridade e status de conclusão.
+- Assistente com Gemini: chat com inteligência artificial para auxiliar na organização da rotina acadêmica.
+- Chat por voz: conversão de fala em texto para enviar mensagens à Gemini.
+- Conversas individuais: chats separados, com histórico armazenado localmente.
+- Planejamento de estudos: organização dos estudos em blocos de horário sugeridos pela IA.
+- Gerenciamento de PDFs: envio e exclusão de materiais, geração de resumos e perguntas sobre o conteúdo.
+- PDFs por conversa: seleção dos documentos utilizados como contexto em cada chat, com integração ao Gemini File Search.
+- Persistência local: armazenamento de usuários, eventos, tarefas, materiais e conversas utilizando SQLite.
+- Interface responsiva: telas adaptadas para desktop e dispositivos móveis.
 
 ## Requisitos
 - Flutter 3.19 ou superior
